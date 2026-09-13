@@ -58,4 +58,10 @@ add('returns','ret1',rental='rent1',warehouse='w1',date='2026-09-13T08:00',quant
 add('rentalReceipts','rr1',rental='rent1',date='2026-09-12',kind='Kira tahsilatı',amount=7200,method='Havale',note='Örnek kısmi tahsilat')
 add('rentalReceipts','rr2',rental='rent1',date='2026-09-12',kind='Depozito alındı',amount=3000,method='Havale',note='Gelir değildir')
 add('rentals','rent2',event='e1',customer='Rota Kültür (örnek)',product='pr1',warehouse='w1',quantity=8,start='2026-09-25T08:00',end='2026-09-27T12:00',billDays=2,dailyRate=750,discount=0,vat=2400,incomeMode='Etkinlik sözleşmesine dahil',billing='Teklif',status='Onaylandı')
+
+# Synthetic business fixtures for clean-checkout tests and demos.
+D['customers']=[{'id': 'cus-demo', 'name': 'Örnek Organizasyon Müşterisi', 'contact': 'Örnek Yetkili', 'email': 'customer@example.test', 'phone': '', 'note': 'Tamamı örnek veri'}]
+D['opportunities']=[{'id': 'opp-demo', 'customer': 'cus-demo', 'title': 'Örnek festival teklifi', 'date': '2026-10-20', 'venue': 'Örnek etkinlik alanı', 'owner': 'Örnek proje sorumlusu', 'stage': 'Teklif verildi', 'expected': 24000, 'reason': ''}]
+D['quotes']=[{'id': 'quote-demo', 'opportunity': 'opp-demo', 'title': 'Örnek festival teknik hizmet teklifi', 'revision': 1, 'validUntil': '2026-10-10', 'status': 'Onaylandı', 'approval': 'ÖRNEK ONAY · gerçek müşteri kararı değildir', 'event': '', 'terms': 'Örnek koşullar; gerçek sözleşme değildir.'}]
+D['quoteLines']=[{'id': 'line-demo', 'quote': 'quote-demo', 'description': 'Örnek teknik hizmet', 'category': 'Hizmet', 'product': '', 'warehouse': '', 'quantity': 1, 'days': 2, 'price': 12000, 'cost': 8000, 'vatRate': 20}]
 (ROOT/'sample.json').write_text(json.dumps({'data':D,'schema':SCHEMA},ensure_ascii=False),encoding='utf-8')
