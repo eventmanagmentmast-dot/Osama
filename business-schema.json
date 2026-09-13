@@ -1,0 +1,387 @@
+{
+  "customers": [
+    [
+      "name",
+      "Müşteri / firma",
+      "text"
+    ],
+    [
+      "contact",
+      "Yetkili kişi",
+      "text"
+    ],
+    [
+      "email",
+      "E-posta",
+      "optional"
+    ],
+    [
+      "phone",
+      "Telefon",
+      "optional"
+    ],
+    [
+      "note",
+      "Not",
+      "optional"
+    ]
+  ],
+  "opportunities": [
+    [
+      "customer",
+      "Müşteri",
+      "ref:customers"
+    ],
+    [
+      "title",
+      "İş fırsatı",
+      "text"
+    ],
+    [
+      "date",
+      "Etkinlik tarihi",
+      "date"
+    ],
+    [
+      "venue",
+      "Mekân",
+      "text"
+    ],
+    [
+      "owner",
+      "Sorumlu",
+      "text"
+    ],
+    [
+      "stage",
+      "Aşama",
+      "enum:Yeni,Görüşülüyor,Teklif verildi,Kazanıldı,Kaybedildi"
+    ],
+    [
+      "expected",
+      "Tahmini net tutar TL",
+      "money"
+    ],
+    [
+      "reason",
+      "Kayıp nedeni / not",
+      "optional"
+    ]
+  ],
+  "quotes": [
+    [
+      "opportunity",
+      "İş fırsatı",
+      "ref:opportunities"
+    ],
+    [
+      "title",
+      "Teklif başlığı",
+      "text"
+    ],
+    [
+      "revision",
+      "Revizyon",
+      "integer"
+    ],
+    [
+      "validUntil",
+      "Geçerlilik tarihi",
+      "date"
+    ],
+    [
+      "status",
+      "Durum",
+      "enum:Taslak,Gönderildi,Onaylandı,Reddedildi"
+    ],
+    [
+      "approval",
+      "Onaylayan / belge referansı",
+      "optional"
+    ],
+    [
+      "event",
+      "Oluşturulan etkinlik",
+      "optref:events"
+    ],
+    [
+      "terms",
+      "Koşullar",
+      "optional"
+    ]
+  ],
+  "quoteLines": [
+    [
+      "quote",
+      "Teklif",
+      "ref:quotes"
+    ],
+    [
+      "description",
+      "Kalem açıklaması",
+      "text"
+    ],
+    [
+      "category",
+      "Tür",
+      "enum:Ürün,Kiralama,Personel,Nakliye,Hizmet"
+    ],
+    [
+      "product",
+      "Ürün (varsa)",
+      "optref:products"
+    ],
+    [
+      "warehouse",
+      "Depo (kiralamada)",
+      "optref:warehouses"
+    ],
+    [
+      "quantity",
+      "Adet",
+      "integer"
+    ],
+    [
+      "days",
+      "Gün",
+      "integer"
+    ],
+    [
+      "price",
+      "Birim günlük net satış TL",
+      "money"
+    ],
+    [
+      "cost",
+      "Birim günlük net maliyet TL",
+      "money"
+    ],
+    [
+      "vatRate",
+      "KDV oranı yüzde",
+      "money"
+    ]
+  ],
+  "externalRentals": [
+    [
+      "event",
+      "Etkinlik",
+      "ref:events"
+    ],
+    [
+      "vendor",
+      "Kiralayan firma",
+      "text"
+    ],
+    [
+      "description",
+      "Ekipman",
+      "text"
+    ],
+    [
+      "quantity",
+      "Adet",
+      "integer"
+    ],
+    [
+      "start",
+      "Teslim zamanı",
+      "datetime"
+    ],
+    [
+      "end",
+      "İade zamanı",
+      "datetime"
+    ],
+    [
+      "status",
+      "Durum",
+      "enum:Planlandı,Teslim alındı,İade edildi,İptal"
+    ],
+    [
+      "expense",
+      "Finans gider kaydı",
+      "optref:expenses"
+    ],
+    [
+      "reference",
+      "Teslim / iade belgesi",
+      "optional"
+    ]
+  ],
+  "fieldReports": [
+    [
+      "event",
+      "Etkinlik",
+      "ref:events"
+    ],
+    [
+      "task",
+      "Görev",
+      "optref:tasks"
+    ],
+    [
+      "title",
+      "Saha bildirimi",
+      "text"
+    ],
+    [
+      "owner",
+      "Sorumlu",
+      "text"
+    ],
+    [
+      "date",
+      "Tarih",
+      "date"
+    ],
+    [
+      "status",
+      "Durum",
+      "enum:Açık,İnceleniyor,Çözüldü"
+    ],
+    [
+      "note",
+      "Açıklama",
+      "text"
+    ]
+  ],
+  "approvals": [
+    [
+      "event",
+      "Etkinlik",
+      "optref:events"
+    ],
+    [
+      "quote",
+      "Teklif (varsa)",
+      "optref:quotes"
+    ],
+    [
+      "extra",
+      "Ek iş (varsa)",
+      "optref:extras"
+    ],
+    [
+      "title",
+      "Onay konusu",
+      "text"
+    ],
+    [
+      "version",
+      "Belge / tasarım sürümü",
+      "text"
+    ],
+    [
+      "email",
+      "Müşteri hesap e-postası",
+      "text"
+    ],
+    [
+      "status",
+      "Karar",
+      "enum:Bekliyor,Onaylandı,Reddedildi"
+    ],
+    [
+      "note",
+      "Karar notu",
+      "optional"
+    ]
+  ],
+  "contractors": [
+    [
+      "event",
+      "Etkinlik",
+      "ref:events"
+    ],
+    [
+      "name",
+      "Taşeron / personel",
+      "text"
+    ],
+    [
+      "description",
+      "Yapılan iş",
+      "text"
+    ],
+    [
+      "unit",
+      "Birim",
+      "enum:Saat,Gün,İş"
+    ],
+    [
+      "quantity",
+      "Çalışılan birim",
+      "money"
+    ],
+    [
+      "rate",
+      "Birim net ücret TL",
+      "money"
+    ],
+    [
+      "due",
+      "Ödeme vadesi",
+      "date"
+    ],
+    [
+      "expense",
+      "Finans gider kaydı",
+      "optref:expenses"
+    ]
+  ],
+  "maintenance": [
+    [
+      "product",
+      "Ürün",
+      "ref:products"
+    ],
+    [
+      "title",
+      "Bakım / arıza",
+      "text"
+    ],
+    [
+      "due",
+      "Planlanan tarih",
+      "date"
+    ],
+    [
+      "status",
+      "Durum",
+      "enum:Planlandı,Serviste,Tamamlandı"
+    ],
+    [
+      "cost",
+      "Net bakım gideri TL",
+      "money"
+    ],
+    [
+      "reference",
+      "Servis belgesi / not",
+      "optional"
+    ]
+  ],
+  "investments": [
+    [
+      "product",
+      "Ürün",
+      "ref:products"
+    ],
+    [
+      "date",
+      "Alım tarihi",
+      "date"
+    ],
+    [
+      "amount",
+      "Toplam net yatırım TL",
+      "money"
+    ],
+    [
+      "note",
+      "Alım belgesi / not",
+      "optional"
+    ]
+  ]
+}

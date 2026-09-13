@@ -1,5 +1,5 @@
 import os,json,sqlite3,secrets,hashlib,hmac,time,base64,io,csv,zipfile,threading
-import warehouse
+import warehouse,business
 from pathlib import Path
 from http.server import ThreadingHTTPServer,BaseHTTPRequestHandler
 from urllib.parse import urlparse
@@ -24,8 +24,9 @@ SCHEMA={
 'documents':[('target','Bağlı kayıt','text'),('name','Dosya adı','text')]
 }
 SCHEMA.update(warehouse.SCHEMA)
+SCHEMA.update(business.SCHEMA)
 FINANCE={'expenses','payments','receipts','cards','statements','cardPayments','staff','advances','extras','rentals','rentalReceipts','products','warehouses'}
-SENSITIVE={'events':{'revenue','budget','vat'},'rentals':{'dailyRate','discount','vat','billing','incomeMode','billDays'}}
+SENSITIVE={'events':{'revenue','budget','vat'},'externalRentals':{'expense'},'maintenance':{'cost'},'rentals':{'dailyRate','discount','vat','billing','incomeMode','billDays'}}
 class Connection(sqlite3.Connection):
  def __exit__(self,*args):
   try:return super().__exit__(*args)
@@ -37,7 +38,7 @@ def initialize():
  with connect() as c:
   c.executescript('CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY,name TEXT UNIQUE,salt TEXT,hash TEXT,role TEXT);CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY,user TEXT,expires REAL);CREATE TABLE IF NOT EXISTS records(kind TEXT,id TEXT,payload TEXT,PRIMARY KEY(kind,id));CREATE TABLE IF NOT EXISTS files(id TEXT PRIMARY KEY,data BLOB);CREATE TABLE IF NOT EXISTS audit(at TEXT,user TEXT,action TEXT);')
 def pw(password,salt):return hashlib.pbkdf2_hmac('sha256',password.encode(),bytes.fromhex(salt),250000).hex()
-def allowed(role,kind,write=False):return role=='admin' or (role=='finance' and kind in FINANCE|{'events','documents','dispatches','returns','stockMoves'} and (not write or kind not in {'dispatches','returns','stockMoves'})) or (role=='operations' and kind in {'events','resources','allocations','tasks','operations','warehouses','products','stockMoves','rentals','dispatches','returns'} and (not write or kind not in {'events','rentals'}))
+def allowed(role,kind,write=False):return role=='admin' or role=='finance' and kind in business.FINANCE or role=='operations' and kind in business.OPS or (role=='finance' and kind in FINANCE|{'events','documents','dispatches','returns','stockMoves'} and (not write or kind not in {'dispatches','returns','stockMoves'})) or (role=='operations' and kind in {'events','resources','allocations','tasks','operations','warehouses','products','stockMoves','rentals','dispatches','returns'} and (not write or kind not in {'events','rentals'}))
 def read_data(c,role):
  out={k:[] for k in SCHEMA if allowed(role,k)}
  for r in c.execute('SELECT * FROM records'):
@@ -73,6 +74,7 @@ def validate(kind,x,c):
  if kind=='payments' and clean['installments']>60:raise ValueError('En fazla 60 taksit')
  if kind=='statements' and clean['due']<clean['cutoff']:raise ValueError('Vade hesap kesiminden önce olamaz')
  if kind=='operations' and clean['status']=='Tamamlandı' and not clean['evidence']:raise ValueError('Tamamlanan kontrol için teyit notu veya belge referansı girin')
+ business.validate(kind,clean)
  return clean
 class Handler(BaseHTTPRequestHandler):
  def log_message(self,*args):pass
@@ -89,11 +91,15 @@ class Handler(BaseHTTPRequestHandler):
   if self.headers.get('Host','').split(':')[0] not in {'127.0.0.1','localhost'}:return self.send(403,{'error':'Yerel adres gerekli'})
   if path in {'/','/app.js','/style.css','/sample.json','/warehouse.js'}:
    file={'/':'index.html','/app.js':'app.js','/style.css':'style.css','/warehouse.js':'warehouse.js','/sample.json':'sample.json'}[path];return self.send(200,(ROOT/file).read_bytes(),{'/':'text/html; charset=utf-8','/app.js':'text/javascript; charset=utf-8','/style.css':'text/css; charset=utf-8','/warehouse.js':'text/javascript; charset=utf-8','/sample.json':'application/octet-stream'}[path])
+  if path in {'/business.js','/qrcode.js'}:return self.send(200,(ROOT/path[1:]).read_bytes(),'text/javascript; charset=utf-8')
   with connect() as c:
    user=self.user(c)
    if path=='/api/session':return self.send(200,{'setup':not c.execute('SELECT 1 FROM users').fetchone(),'user':{'name':user['name'],'role':user['role']} if user else None})
    if not user:return self.send(401,{'error':'Giriş gerekli'})
    if path=='/api/data':return self.send(200,{'data':read_data(c,user['role']),'schema':{k:[f for f in v if user['role']!='operations' or f[0] not in SENSITIVE.get(k,set())] for k,v in SCHEMA.items() if allowed(user['role'],k)},'write':[k for k in SCHEMA if allowed(user['role'],k,True)],'users':[dict(r) for r in c.execute('SELECT name,role FROM users')] if user['role']=='admin' else []})
+   if path=='/api/audit':
+    if user['role']!='admin':return self.send(403,{'error':'Yönetici gerekli'})
+    return self.send(200,{'rows':[dict(r) for r in c.execute('SELECT at,user AS actor,action FROM audit ORDER BY rowid DESC LIMIT 200')]})
    if path=='/api/backup':
     if user['role']!='admin':return self.send(403,{'error':'Yönetici gerekli'})
     backup={'version':1,'data':read_data(c,'admin'),'files':{r['id']:base64.b64encode(r['data']).decode() for r in c.execute('SELECT * FROM files')}}
@@ -138,23 +144,39 @@ class Handler(BaseHTTPRequestHandler):
      if user['role']!='admin':return self.send(403,{'error':'Yönetici gerekli'})
      if x.get('role') not in {'admin','finance','operations'} or len(x.get('password',''))<10 or not x.get('name','').strip():raise ValueError('Ad, rol ve en az 10 karakterli parola gerekli')
      salt=secrets.token_hex(16);c.execute('INSERT INTO users VALUES(?,?,?,?,?)',(secrets.token_hex(12),x['name'].strip(),salt,pw(x['password'],salt),x['role']))
+    elif path in {'/api/convert-quote','/api/revise-quote'}:
+     if user['role'] not in {'admin','finance'}:return self.send(403,{'error':'Yetki yok'})
+     for kind,rid,record in (business.revise if path.endswith('revise-quote') else business.convert)(read_data(c,'admin'),x.get('id'),secrets.token_hex(12)):
+      c.execute('INSERT OR REPLACE INTO records VALUES(?,?,?)',(kind,rid,json.dumps(validate(kind,record,c),ensure_ascii=False)))
     elif path=='/api/record':
      kind=x.get('kind')
      if kind not in SCHEMA or kind=='documents' or not allowed(user['role'],kind,True):return self.send(403,{'error':'Bu kaydı değiştirme yetkiniz yok'})
-     clean=validate(kind,x['record'],c);rid=x.get('id') or secrets.token_hex(12)
+     rid=x.get('id') or secrets.token_hex(12)
+     old=c.execute('SELECT payload FROM records WHERE kind=? AND id=?',(kind,rid)).fetchone();existing=json.loads(old['payload']) if old else {}
+     if kind=='approvals' and existing and existing.get('status')!='Bekliyor':raise ValueError('Karar verilmiş onay kaydı kilitli; yeni sürüm için yeni kayıt açın')
+     if kind=='quotes' and existing.get('event'):raise ValueError('Dönüştürülen teklif kilitli')
+     if kind=='quoteLines':
+      for qid in {existing.get('quote'),x['record'].get('quote')}:
+       q=c.execute("SELECT payload FROM records WHERE kind='quotes' AND id=?",(qid,)).fetchone()
+       if q and json.loads(q['payload']).get('event'):raise ValueError('Dönüştürülen teklif kilitli')
+     if user['role']=='operations':
+      for f in SENSITIVE.get(kind,set()):x['record'][f]=existing.get(f,0 if f=='cost' else '')
+     clean=validate(kind,x['record'],c)
      warehouse.validate(kind,clean,c,rid)
      c.execute('INSERT OR REPLACE INTO records VALUES(?,?,?)',(kind,rid,json.dumps(clean,ensure_ascii=False)))
     elif path=='/api/upload':
-     if not allowed(user['role'],'documents',True):return self.send(403,{'error':'Yetki yok'})
+     if not allowed(user['role'],'documents',True) and user['role']!='operations':return self.send(403,{'error':'Yetki yok'})
      blob=base64.b64decode(x['data'],validate=True)
      if len(blob)>10*1024*1024:raise ValueError('Belge en fazla 10 MB olabilir')
      target=x['target'];kind,sep,rid=target.partition(':')
-     if kind not in {'expenses','payments','receipts','statements','cardPayments'} or not c.execute('SELECT 1 FROM records WHERE kind=? AND id=?',(kind,rid)).fetchone():raise ValueError('Bağlanacak kayıt bulunamadı')
+     if user['role']=='operations' and kind!='fieldReports':return self.send(403,{'error':'Yetki yok'})
+     if kind not in {'expenses','payments','receipts','statements','cardPayments','fieldReports','approvals'} or not c.execute('SELECT 1 FROM records WHERE kind=? AND id=?',(kind,rid)).fetchone():raise ValueError('Bağlanacak kayıt bulunamadı')
      name=Path(x['name']).name
      if Path(name).suffix.lower() not in {'.pdf','.png','.jpg','.jpeg','.webp'}:raise ValueError('PDF veya görsel seçin')
      fid=secrets.token_hex(12);c.execute('INSERT INTO files VALUES(?,?)',(fid,blob));c.execute('INSERT INTO records VALUES(?,?,?)',('documents',fid,json.dumps({'target':target,'name':name})))
     elif path=='/api/restore':
      if user['role']!='admin':return self.send(403,{'error':'Yönetici gerekli'})
+     for k in business.SCHEMA:x.setdefault('data',{}).setdefault(k,[])
      if x.get('version')!=1 or set(x.get('data',{}))!=set(SCHEMA):raise ValueError('Yedek biçimi geçersiz')
      # Validate in a separate temporary database before touching current records.
      tmp=sqlite3.connect(':memory:');tmp.row_factory=sqlite3.Row;tmp.execute('CREATE TABLE records(kind TEXT,id TEXT,payload TEXT,PRIMARY KEY(kind,id))')

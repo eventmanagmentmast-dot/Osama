@@ -1,5 +1,51 @@
 # Organizasyon Yönetim Merkezi
 
+## İş merkezi
+
+Yeni başlangıç ekranı satış, planlama, depo ve finans işlemlerini bir araya getirir.
+Müşteri rehberi → iş fırsatı → teklif ve kalemleri → onay → etkinlik akışı vardır.
+Onaylı teklif tek işlemde etkinlik bütçesini, hazırlık görevini ve kiralama
+kalemlerinden taslak rezervasyonları oluşturur. Taslak rezervasyonlar kapasiteyi
+bloke etmez; teslim saatleri ve stok teyidinden sonra onaylanmalıdır. Dönüştürülen
+teklif kilitlenir. Yeni revizyon önceki kalemleri kopyalar; aynı iş fırsatı ikinci
+etkinliğe dönüştürülmez. Mevcut işe ilaveler Ek işler bölümünden izlenir.
+
+- Teklif PDF'i tarayıcının Yazdır → PDF olarak kaydet seçeneğiyle alınır.
+- Dış kiralama ve taşeron hakedişi finans giderine bağlanır. Bu bölümler ikinci
+  maliyet yaratmaz; gider bağlantısı ve hakediş farkları kontrol edilmelidir.
+- Ortak takvim tarih aralığıyla rezervasyonları, çakışma raporu kapasiteyi gösterir.
+- QR etiketi ürün kodunu içerir; etiket bilgisi üçüncü taraf servisine gönderilmez.
+  Kamera tarayıcı desteği ve kullanıcı izni gerektirir. Destek yoksa kodla arama
+  veya klavye gibi çalışan barkod okuyucu kullanılabilir.
+- Bakım kayıtları stok hareketi yaratmaz; hasarlı çıkış/sağlam giriş depo
+  hareketlerinden kaydedilir. Yatırım raporu bağımsız faturalanmış kiralama
+  gelirinden tamamlanan bakım tutarını düşer; tam muhasebe kârı değildir.
+- Bildirim merkezi panel içindedir; kendiliğinden e-posta/SMS göndermez.
+- Yönetici son 200 işlemi görebilir. JSON yedekleri yeni kayıt türlerini kapsar;
+  önceki sürüm yedeklerinde eksik yeni bölümler boş kabul edilir.
+
+### Ortak yayında müşteri ve saha erişimi
+
+Bulut sürümünde `customer` yalnız e-postasına atanmış onayları ve onların
+belgelerini görür; `field` yalnız sorumlu alanında kendi hesap e-postası yazan
+görevleri görür, tamamlar ve fotoğraflı saha bildirimi ekler. Genel operasyon rolü
+ortak operasyon kayıtlarına erişmeye devam eder. Yeni rollerde finans bilgileri
+sunucudan gönderilmez. Bu roller yerel kullanıcı sistemine eklenmemiştir.
+
+Müşteri onayı belirli belge sürümüne bağlanır; karar verildikten sonra kayıt
+kilitlenir. Teklif veya ek iş bağlantısı varsa müşteri kararı ilgili kayda da
+aktarılır. Bu kayıt elektronik imza hizmeti değildir. Müşteriye gösterilecek
+teklif/tasarım dosyasını onay kaydına ekleyin. Kişileri kullanıma açmak için hem
+Sites erişim listesi hem panelde e-posta/rol ataması gerekir; bu geliştirme
+mevcut yayınların erişim listesini değiştirmez.
+
+### Açık demo
+
+`public-demo/` yalnız örnek veriyle çalışır; gerçek kayıtlar, hesaplar ve belgeler
+pakete alınmaz. Yenilemede değişiklikler silinir. Müşteri/saha hesabı yetkileri
+sunuculu ortak sürüme aittir. QR bileşeni `qrcode-generator` 1.4.4, MIT lisanslıdır;
+kaynak telif bildirimi `qrcode.js` içinde korunur.
+
 ## Ortak bulut sürümü
 
 Bulut sürümü `cloud/` klasöründedir. Sites üzerinde HTTPS, ChatGPT kimliği,
