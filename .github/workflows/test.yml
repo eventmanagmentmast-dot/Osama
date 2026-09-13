@@ -16,3 +16,6 @@ jobs:
       - run: python make_sample.py
       - run: python test_server.py
       - run: node test_logic.js
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - run: npm run test:cloud
