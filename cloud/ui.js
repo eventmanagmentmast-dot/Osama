@@ -1,0 +1,10 @@
+let cloudRevision=0;
+const localApp=app,localBindSpecial=bindSpecial,localRender=render;
+api=async function(path,body){const response=await fetch('/api/'+path,body===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,expectedRevision:cloudRevision})});const x=await response.json();if(!response.ok)throw Error(x.error||'İşlem başarısız');if(typeof x.revision==='number')cloudRevision=x.revision;return x;};
+app=function(){localApp();$('#mode').textContent='Ortak veritabanı · Son yenileme '+new Date().toLocaleTimeString('tr-TR')+' · TRY';$('#exit').onclick=()=>location.assign('/signout-with-chatgpt?return_to=%2F');const refresh=document.createElement('button');refresh.textContent='Kayıtları yenile';refresh.onclick=()=>load().catch(e=>notice(e.message));$('#account').append(refresh);};
+login=function(){$('#content').innerHTML='<section class="login"><h2>Ortak çalışma alanına giriş</h2><p>Yetkilendirilmiş ChatGPT hesabınızla giriş yapın.</p><a href="/signin-with-chatgpt?return_to=%2F" target="_top">ChatGPT ile giriş yap</a></section>';};
+render=function(){localRender();if(page==='backup')$('#content').querySelector('.muted').textContent='Kayıtlar ortak sunucuda tutulur. Geri yüklemeden önce belgeleri içeren sunucu yedeği alınır. Tek JSON yedeğinde belge toplamı en fazla 12 MB, geri yüklemede en fazla 1000 kayıt desteklenir. Düzenli olarak yedek indirip saklayın.';};
+bindSpecial=function(){localBindSpecial();if($('#add-user'))$('#add-user').onclick=()=>form('Ekip yetkisi ekle / değiştir',[{key:'name',label:'ChatGPT hesabının e-posta adresi',type:'email'},{key:'role',label:'Rol',options:[['operations','Operasyon'],['finance','Muhasebe'],['admin','Yönetici'],['disabled','Erişimi kapat']]}],async x=>{await api('users',x);await load();notice('Rol kaydedildi. Yeni ekip üyesinin yayınlanan sitenin erişim listesine de eklenmesi gerekir.');});};
+// Poll only when no form is open, so a refresh never discards unsaved form input.
+setInterval(()=>{if(user&&!document.hidden&&!$('#dialog').open)load().catch(e=>notice(e.message));},30000);
+start();
