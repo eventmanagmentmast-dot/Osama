@@ -1,0 +1,27 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const context=vm.createContext({console,Intl,Date,Set,JSON,Math,Number,String,fetch:()=>{},document:{querySelector:()=>null}});
+const code=fs.readFileSync(__dirname+'/app.js','utf8').replace(/start\(\);\s*$/,'');
+vm.runInContext(code,context);
+context.fixture=JSON.parse(fs.readFileSync(__dirname+'/sample.json','utf8'));
+vm.runInContext('D=fixture.data;schema=fixture.schema;',context);
+const get=s=>vm.runInContext(s,context);
+assert.equal(get("totals(find('events','e1')).revenue"),1850000);
+assert.equal(get("totals(find('events','e1')).cost"),642500);
+assert.equal(get("totals(find('events','e1')).profit"),1207500);
+assert.equal(get("staffPaid(find('staff','st0'))"),2000);
+assert.equal(get("wages(find('staff','st0'))-staffPaid(find('staff','st0'))"),5500);
+assert.equal(get("statementPaid(find('statements','s1'))"),10000);
+assert.equal(get("conflicts().length"),1);
+assert.equal(get("sum(installments(find('payments','p1')),x=>x.amount)"),120000);
+assert.equal(get("installments({amount:100,installments:3,firstDue:'2028-01-31',card:'c1'})[1].date"),'2028-02-29');
+assert.equal(get("Math.round(sum(installments({amount:100,installments:3,firstDue:'2026-01-31',card:'c1'}),x=>x.amount)*100)"),10000);
+console.log('PASS: profitability, no duplicate advances/card repayment costs, capacity conflicts, installments, month-end and cent rounding');
+
+vm.runInContext(fs.readFileSync(__dirname+'/warehouse.js','utf8'),context);
+assert.equal(get("inventory().find(s=>s.warehouse==='w1'&&s.product==='pr1').good"),6);
+assert.equal(get("inventory().find(s=>s.warehouse==='w1'&&s.product==='pr1').damaged"),1);
+assert.equal(get("dispatched(find('rentals','rent1'))-returned(find('rentals','rent1'))"),3);
+assert.equal(get("rentalNet(find('rentals','rent1'))"),12000);
+vm.runInContext("availabilityStart='2026-09-20T00:00';availabilityEnd='2026-09-30T00:00'",context);
+assert.equal(get("reservedPeak('w1','pr1')"),8);
+console.log('PASS: warehouse good/damaged/outside stock, reservation peak, rental income');
