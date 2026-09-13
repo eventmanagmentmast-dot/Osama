@@ -1,5 +1,36 @@
 # Organizasyon Yönetim Merkezi
 
+## Ortak bulut sürümü
+
+Bulut sürümü `cloud/` klasöründedir. Sites üzerinde HTTPS, ChatGPT kimliği,
+ortak D1 veritabanı ve R2 belge saklama kullanır. Yerel Python sürümü korunur.
+Bulut ve bilgisayardaki veritabanları otomatik eşitlenmez. Gerçek yerel veriler
+yayın paketine dahil edilmez; veri aktarımı ayrıca seçilerek yapılmalıdır.
+
+İlk yayın yalnızca site sahibine açıktır. Sunucudaki `OWNER_EMAIL` ayarı
+yöneticiyi belirler. Ekip üyelerine hem Sites erişimi hem panelde e-posta/rol
+atanmalıdır. Panelde `Erişimi kapat` rolü ilgili kullanıcının veri erişimini keser.
+Parolalar GitHub'a veya uygulamaya kaydedilmez; giriş Sites üzerinden yapılır.
+
+Kayıtlar 30 saniyede yenilenir; açık form varken otomatik yenileme yapılmaz.
+Eşzamanlı değişiklikler veritabanı sürümüyle kontrol edilir; eski sürümle yapılan
+yazma reddedilir. Bu nedenle bir kullanıcının değişikliği sessizce kaybolmaz.
+JSON yedeğinde toplam belge boyutu 12 MB, tek geri yüklemede 1000 kayıt sınırı
+vardır. Geri yükleme öncesi R2'ye yedek alınır. R2'de eski belgeler ve bu yedekler
+otomatik silinmez. Düzenli harici yedek indirilmelidir.
+
+Bulut geliştirme: `npm ci`, `npm run build`, `npm run test:cloud`.
+Testler Node 22.13+ ve geçici bellek içi SQLite kullanır. Şema değişiklikleri
+`npm run db:generate` ile üretilir; yayımlanmış migration dosyaları değiştirilmez.
+`cloud/schema.json` yerel `server.SCHEMA` ile aynı tutulmalıdır.
+
+GitHub güncellemesi tek başına canlı yayını değiştirmez. Her geliştirmede
+GitHub yeniliklerini al, yerel ve bulut testlerini çalıştır, kaynakları GitHub'a
+gönder, ardından aynı sürümü Sites üzerinden yayımla ve sonucu doğrula.
+Sites kaynak deposu ve GitHub `origin` farklı hedeflerdir. Kimlik bilgileri
+dosyalara veya Git uzak adreslerine yazılmaz. Ücretli hizmet satın alınmamıştır;
+platform kotaları ve erişim politikaları yayın hizmetinin koşullarına bağlıdır.
+
 Konser, festival, fuar ve etkinlik işleri için yerel prototip. Python standart kütüphanesi, SQLite ve tarayıcı arayüzü kullanır. Python 3.11+ yeterlidir; çalışma bağımlılığı kurulmaz.
 
 ## Çalıştırma

@@ -16,3 +16,7 @@ logs/
 *.key
 .venv/
 .DS_Store
+node_modules/
+dist/
+.sites-runtime/
+cloud/assets.generated.json

@@ -1,0 +1,1 @@
+{"name":"osama-organizasyon","private":true,"version":"0.2.0","scripts":{"build":"node cloud/build.mjs","db:generate":"drizzle-kit generate","test:cloud":"node --test cloud/test.mjs"},"dependencies":{"fflate":"0.8.2"},"devDependencies":{"drizzle-kit":"0.31.4","drizzle-orm":"0.44.5","esbuild":"0.25.9"}}
