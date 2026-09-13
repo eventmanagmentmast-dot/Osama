@@ -1,8 +1,9 @@
 import schema from './schema.json' with {type:'json'};
+import {validateBusiness} from './business.mjs';
 export {schema};
-const finance=new Set(['expenses','payments','receipts','cards','statements','cardPayments','staff','advances','extras','rentals','rentalReceipts','products','warehouses','events','documents','dispatches','returns','stockMoves']);
-const ops=new Set(['events','resources','allocations','tasks','operations','warehouses','products','stockMoves','rentals','dispatches','returns']);
-export const sensitive={events:['revenue','budget','vat'],rentals:['dailyRate','discount','vat','billing','incomeMode','billDays']};
+const finance=new Set(['customers','opportunities','quotes','quoteLines','externalRentals','contractors','maintenance','investments','approvals','expenses','payments','receipts','cards','statements','cardPayments','staff','advances','extras','rentals','rentalReceipts','products','warehouses','events','documents','dispatches','returns','stockMoves']);
+const ops=new Set(['fieldReports','externalRentals','maintenance','events','resources','allocations','tasks','operations','warehouses','products','stockMoves','rentals','dispatches','returns']);
+export const sensitive={events:['revenue','budget','vat'],externalRentals:['expense'],maintenance:['cost'],rentals:['dailyRate','discount','vat','billing','incomeMode','billDays']};
 export const allowed=(role,kind,write=false)=>role==='admin'||role==='finance'&&finance.has(kind)&&(!write||!['dispatches','returns','stockMoves'].includes(kind))||role==='operations'&&ops.has(kind)&&(!write||!['events','rentals'].includes(kind));
 export function filtered(data,role){return Object.fromEntries(Object.entries(data).filter(([k])=>allowed(role,k)).map(([k,rs])=>[k,rs.map(r=>Object.fromEntries(Object.entries(r).filter(([f])=>role!=='operations'||!sensitive[k]?.includes(f))))]));}
 const fail=m=>{throw Object.assign(new Error(m),{status:400})};
@@ -18,6 +19,7 @@ export function validate(kind,x,data){
  if(kind==='payments'){if(clean.method==='Kredi kartı'&&(!clean.card||!clean.firstDue))fail('Kart ve ilk taksit vadesi gerekli');if(clean.method!=='Kredi kartı')Object.assign(clean,{card:'',installments:1,firstDue:''});if(clean.installments>60)fail('En fazla 60 taksit');}
  if(kind==='statements'&&clean.due<clean.cutoff)fail('Vade hesap kesiminden önce olamaz');
  if(kind==='operations'&&clean.status==='Tamamlandı'&&!clean.evidence)fail('Tamamlanan kontrol için teyit gerekli');
+ validateBusiness(kind,clean);
  return clean;
 }
 export function validateWarehouse(data){
