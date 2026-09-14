@@ -32,7 +32,7 @@ export async function handle(request,env){
  const snap=await snapshot(env.DB),role=email===owner(env)?'admin':snap.members.find(m=>m.email===email)?.role;
  if(!role||role==='disabled')throw error('Bu çalışma alanında yetkiniz yok. Yöneticinizden erişim isteyin.',403);
  if(request.method==='GET'){
-  if(path==='/brand-mark.png')return new Response(Uint8Array.from(atob(assets[path]),c=>c.charCodeAt(0)),{headers:{'Content-Type':'image/png','Cache-Control':'public, max-age=3600'}});
+  if(['/brand-mark.png','/event-scene.png'].includes(path))return new Response(Uint8Array.from(atob(assets[path]),c=>c.charCodeAt(0)),{headers:{'Content-Type':'image/png','Cache-Control':'public, max-age=3600'}});
   if(Object.hasOwn(assets,path))return new Response(assets[path],{headers:{'Content-Type':path.endsWith('.js')?'text/javascript; charset=utf-8':path.endsWith('.css')?'text/css; charset=utf-8':path.endsWith('.json')?'application/json; charset=utf-8':'text/html; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'same-origin'}});
   if(path==='/api/session')return json({setup:false,cloud:true,user:{name:email,role}});
   if(path==='/api/data'&&['customer','field'].includes(role)){const data=portalData(snap.data,email,role);return json({data,revision:snap.revision,schema:Object.fromEntries(Object.keys(data).map(k=>[k,schema[k].filter(([f])=>!sensitive[k]?.includes(f))])),write:[],users:[]});}
