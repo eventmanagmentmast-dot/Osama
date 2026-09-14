@@ -20,7 +20,9 @@ etkinliğe dönüştürülmez. Mevcut işe ilaveler Ek işler bölümünden izle
 - Bakım kayıtları stok hareketi yaratmaz; hasarlı çıkış/sağlam giriş depo
   hareketlerinden kaydedilir. Yatırım raporu bağımsız faturalanmış kiralama
   gelirinden tamamlanan bakım tutarını düşer; tam muhasebe kârı değildir.
-- Bildirim merkezi panel içindedir; kendiliğinden e-posta/SMS göndermez.
+- Bildirim merkezi panel içindedir; kendiliğinden e-posta/SMS göndermez. Görev,
+  kontrol, tahsilat ve onay vadelerinin yanında stok uyarı eşiği altına düşen
+  ürünler ve bakiyesi kapanmamış kart ekstreleri de listelenir.
 - Yönetici son 200 işlemi görebilir. JSON yedekleri yeni kayıt türlerini kapsar;
   önceki sürüm yedeklerinde eksik yeni bölümler boş kabul edilir.
 
