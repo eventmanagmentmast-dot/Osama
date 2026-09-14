@@ -171,7 +171,7 @@ class Handler(BaseHTTPRequestHandler):
      if len(blob)>10*1024*1024:raise ValueError('Belge en fazla 10 MB olabilir')
      target=x['target'];kind,sep,rid=target.partition(':')
      if user['role']=='operations' and kind!='fieldReports':return self.send(403,{'error':'Yetki yok'})
-     if kind not in {'expenses','payments','receipts','statements','cardPayments','fieldReports','approvals'} or not c.execute('SELECT 1 FROM records WHERE kind=? AND id=?',(kind,rid)).fetchone():raise ValueError('Bağlanacak kayıt bulunamadı')
+     if kind not in {'expenses','payments','receipts','statements','cardPayments','fieldReports','approvals','surveys'} or not c.execute('SELECT 1 FROM records WHERE kind=? AND id=?',(kind,rid)).fetchone():raise ValueError('Bağlanacak kayıt bulunamadı')
      name=Path(x['name']).name
      if Path(name).suffix.lower() not in {'.pdf','.png','.jpg','.jpeg','.webp'}:raise ValueError('PDF veya görsel seçin')
      fid=secrets.token_hex(12);c.execute('INSERT INTO files VALUES(?,?)',(fid,blob));c.execute('INSERT INTO records VALUES(?,?,?)',('documents',fid,json.dumps({'target':target,'name':name})))

@@ -383,5 +383,47 @@
       "Alım belgesi / not",
       "optional"
     ]
+  ],
+  "surveys": [
+    [
+      "event",
+      "Etkinlik",
+      "ref:events"
+    ],
+    [
+      "title",
+      "Alan / keşif başlığı",
+      "text"
+    ],
+    [
+      "date",
+      "Keşif tarihi",
+      "date"
+    ],
+    [
+      "width",
+      "En (metre)",
+      "money"
+    ],
+    [
+      "length",
+      "Boy (metre)",
+      "money"
+    ],
+    [
+      "quantity",
+      "Adet",
+      "integer"
+    ],
+    [
+      "source",
+      "Ölçüm kaynağı",
+      "enum:Yerinde ölçüm,Mekân beyanı,Varsayım"
+    ],
+    [
+      "note",
+      "Keşif notları",
+      "optional"
+    ]
   ]
 }
