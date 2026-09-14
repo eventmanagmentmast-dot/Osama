@@ -91,7 +91,7 @@ class Handler(BaseHTTPRequestHandler):
   if self.headers.get('Host','').split(':')[0] not in {'127.0.0.1','localhost'}:return self.send(403,{'error':'Yerel adres gerekli'})
   if path in {'/','/app.js','/style.css','/sample.json','/warehouse.js'}:
    file={'/':'index.html','/app.js':'app.js','/style.css':'style.css','/warehouse.js':'warehouse.js','/sample.json':'sample.json'}[path];return self.send(200,(ROOT/file).read_bytes(),{'/':'text/html; charset=utf-8','/app.js':'text/javascript; charset=utf-8','/style.css':'text/css; charset=utf-8','/warehouse.js':'text/javascript; charset=utf-8','/sample.json':'application/octet-stream'}[path])
-  if path in {'/experience.css','/brand-mark.png'}:return self.send(200,(ROOT/path[1:]).read_bytes(),'image/png' if path.endswith('.png') else 'text/css; charset=utf-8')
+  if path in {'/experience.css','/brand-mark.png','/event-scene.png'}:return self.send(200,(ROOT/path[1:]).read_bytes(),'image/png' if path.endswith('.png') else 'text/css; charset=utf-8')
   if path in {'/business.js','/qrcode.js','/experience.js'}:return self.send(200,(ROOT/path[1:]).read_bytes(),'text/javascript; charset=utf-8')
   with connect() as c:
    user=self.user(c)
