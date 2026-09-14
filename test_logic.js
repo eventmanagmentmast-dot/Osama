@@ -25,3 +25,10 @@ assert.equal(get("rentalNet(find('rentals','rent1'))"),12000);
 vm.runInContext("availabilityStart='2026-09-20T00:00';availabilityEnd='2026-09-30T00:00'",context);
 assert.equal(get("reservedPeak('w1','pr1')"),8);
 console.log('PASS: warehouse good/damaged/outside stock, reservation peak, rental income');
+
+vm.runInContext(fs.readFileSync(__dirname+'/business.js','utf8'),context);
+assert.equal(get("alerts().filter(a=>a.section==='vendors').length"),4);
+assert.equal(get("alerts().filter(a=>a.section==='payroll').length"),3);
+assert.equal(get("alerts().find(a=>a.section==='vendors'&&a.date==='2026-09-25').title.includes('Sahne Teknik')"),true);
+assert.equal(get("alerts().find(a=>a.section==='payroll').title.includes('Deniz')"),true);
+console.log('PASS: notification center flags outstanding vendor payments and staff wage balances');
