@@ -63,3 +63,16 @@ test('quote conversion is atomic, cannot repeat, preserves revisions and isolate
  assert.equal((await req(env,'data',null,'crew@example.test')).data.data.fieldReports.length,1);
  env.db.close();
 });
+
+test('survey measurements and attached photos persist with access checks',async()=>{
+ const env=environment();let revision=0;
+ const save=async(path,body)=>{const r=await req(env,path,{...body,expectedRevision:revision});assert.equal(r.status,200,JSON.stringify(r.data));revision=r.data.revision;return r;};
+ await save('record',{kind:'events',id:'survey-event',record:sample.events[0]});
+ await save('record',{kind:'surveys',id:'survey-1',record:{event:'survey-event',title:'Test area',date:'2026-09-14',width:5,length:4,quantity:2,source:'Yerinde ölçüm',note:'Test note'}});
+ await save('upload',{target:'surveys:survey-1',name:'test.png',data:btoa('test-image-bytes')});
+ const data=(await req(env,'data')).data.data;assert.equal(data.surveys[0].width*data.surveys[0].length*data.surveys[0].quantity,40);
+ assert.equal(data.documents[0].target,'surveys:survey-1');assert.equal((await req(env,'file/'+data.documents[0].id)).status,200);
+ assert.equal((await req(env,'file/'+data.documents[0].id,null,'outsider@example.test')).status,403);
+ assert.equal((await req(env,'upload',{target:'surveys:missing',name:'test.png',data:btoa('test'),expectedRevision:revision})).status,400);
+ env.db.close();
+});

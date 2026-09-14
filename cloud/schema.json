@@ -1,1 +1,1118 @@
-{"events": [["name", "Etkinlik", "text"], ["client", "Müşteri", "text"], ["date", "Etkinlik tarihi", "date"], ["venue", "Mekân", "text"], ["revenue", "Sözleşme net TL", "money"], ["budget", "Maliyet bütçesi net TL", "money"], ["vat", "Sözleşme KDV tutarı TL", "money"]], "expenses": [["event", "Etkinlik", "ref:events"], ["vendor", "Tedarikçi", "text"], ["description", "Gider açıklaması", "text"], ["net", "Net gider TL", "money"], ["vat", "Kayıtlı KDV TL", "money"], ["document", "Belge durumu", "enum:Faturalı,Faturasız,Belge bekleniyor"], ["number", "Belge numarası / not", "optional"], ["due", "Ödeme vadesi", "date"]], "payments": [["expense", "Gider kaydı", "ref:expenses"], ["date", "Ödeme tarihi", "date"], ["amount", "Ödeme TL (KDV dahil)", "money"], ["method", "Yöntem", "enum:Havale,Nakit,Kredi kartı"], ["card", "Kart (kartlı işlemde)", "optref:cards"], ["installments", "Taksit sayısı", "integer"], ["firstDue", "İlk taksit vadesi (kartlı işlemde)", "optionaldate"]], "receipts": [["event", "Etkinlik", "ref:events"], ["date", "Tarih / vade", "date"], ["amount", "Tahsilat TL (KDV dahil)", "money"], ["status", "Durum", "enum:Planlandı,Tahsil edildi"], ["method", "Yöntem", "enum:Havale,Nakit,POS"], ["note", "Açıklama", "optional"]], "cards": [["name", "Kart adı / banka", "text"], ["last4", "Son dört hane", "last4"], ["limit", "Kart limiti TL", "money"]], "statements": [["card", "Kart", "ref:cards"], ["cutoff", "Hesap kesim tarihi", "date"], ["due", "Son ödeme tarihi", "date"], ["amount", "Banka ekstresi dönem borcu TL", "money"]], "cardPayments": [["statement", "Ekstre", "ref:statements"], ["date", "Bankaya ödeme tarihi", "date"], ["amount", "Ödenen TL", "money"]], "staff": [["event", "Etkinlik", "ref:events"], ["name", "Personel", "text"], ["role", "Görev", "text"], ["days", "Çalışma günü", "integer"], ["rate", "Günlük ücret TL", "money"], ["due", "Ödeme vadesi", "date"]], "advances": [["staff", "Personel kaydı", "ref:staff"], ["date", "Ödeme tarihi", "date"], ["amount", "Avans / ücret ödemesi TL", "money"], ["method", "Yöntem", "enum:Nakit,Havale"]], "extras": [["event", "Etkinlik", "ref:events"], ["description", "Ek iş / iade açıklaması", "text"], ["kind", "Tür", "enum:Ek iş,Müşteri iadesi"], ["amount", "Net tutar TL", "money"], ["vat", "KDV tutarı TL", "money"], ["status", "Onay", "enum:Bekliyor,Onaylandı,Reddedildi"]], "resources": [["name", "Ekipman / ekip / araç", "text"], ["capacity", "Aynı anda kullanılabilir adet", "integer"]], "allocations": [["event", "Etkinlik", "ref:events"], ["resource", "Kaynak", "ref:resources"], ["start", "Başlangıç (Türkiye saati)", "datetime"], ["end", "Bitiş (Türkiye saati)", "datetime"], ["quantity", "Ayrılan adet", "integer"], ["buffer", "Seyahat / hazırlık tamponu dakika", "nonnegative"], ["status", "Rezervasyon", "enum:Kesin,Geçici"]], "tasks": [["event", "Etkinlik", "ref:events"], ["title", "İş / görev", "text"], ["owner", "Sorumlu", "text"], ["due", "Son tarih", "date"], ["status", "Durum", "enum:Bekliyor,Devam ediyor,Tamamlandı"], ["priority", "Öncelik", "enum:Yüksek,Normal,Düşük"]], "operations": [["event", "Etkinlik", "ref:events"], ["phase", "Hazırlık başlığı", "enum:Mekân keşfi,Kurulum,Teknik sistemler,Ekip,Sanatçı / protokol,Giriş / akreditasyon,İkram,İzin / belge,Alternatif plan,Söküm / iade"], ["title", "Kontrol / yapılacak iş", "text"], ["owner", "Sorumlu kişi / ekip", "text"], ["due", "Son tarih", "date"], ["status", "Durum", "enum:Başlanmadı,Devam ediyor,Teyit bekliyor,Tamamlandı,Uygulanmıyor"], ["critical", "Önem", "enum:Kritik,Normal"], ["evidence", "Teyit / belge referansı", "optional"], ["note", "Eksik / açıklama", "optional"]], "documents": [["target", "Bağlı kayıt", "text"], ["name", "Dosya adı", "text"]], "warehouses": [["name", "Depo adı", "text"], ["location", "Adres / bölüm", "text"], ["owner", "Depo sorumlusu", "text"]], "products": [["code", "Ürün kodu", "text"], ["name", "Ürün adı", "text"], ["category", "Kategori", "enum:Ses,Işık,Görüntü,Sahne,Mobilya,Dekor,Kablo / aksesuar,Diğer"], ["unit", "Birim", "enum:Adet,Set,Metre"], ["tracking", "Takip", "enum:Adet havuzu,Tekil varlık"], ["serial", "Seri no (tekil varlıkta)", "optional"], ["minimum", "Uyarı eşiği", "nonnegative"]], "stockMoves": [["product", "Ürün", "ref:products"], ["warehouse", "Kaynak / işlem deposu", "ref:warehouses"], ["destination", "Hedef depo (transferde)", "optref:warehouses"], ["date", "Hareket zamanı (Türkiye)", "datetime"], ["type", "Hareket", "enum:Giriş,Çıkış,Transfer"], ["condition", "Durum", "enum:Kullanılabilir,Hasarlı"], ["quantity", "Miktar", "integer"], ["note", "Belge / açıklama", "text"]], "rentals": [["event", "Etkinlik (varsa)", "optref:events"], ["customer", "Kiracı / müşteri", "text"], ["product", "Ürün", "ref:products"], ["warehouse", "Çıkış deposu", "ref:warehouses"], ["quantity", "Kiralanan miktar", "integer"], ["start", "Rezervasyon başlangıcı (Türkiye)", "datetime"], ["end", "Planlanan iade (Türkiye)", "datetime"], ["billDays", "Ücretlendirilen gün", "integer"], ["dailyRate", "Birim günlük net kira TL", "money"], ["discount", "Toplam net indirim TL", "money"], ["vat", "Toplam KDV TL", "money"], ["incomeMode", "Gelir sayımı", "enum:Bağımsız gelir,Etkinlik sözleşmesine dahil"], ["billing", "Fatura durumu", "enum:Teklif,Faturalandı"], ["status", "Rezervasyon", "enum:Taslak,Onaylandı,İptal"]], "dispatches": [["rental", "Kiralama", "ref:rentals"], ["date", "Teslim zamanı (Türkiye)", "datetime"], ["quantity", "Teslim edilen miktar", "integer"], ["recipient", "Teslim alan", "text"], ["reference", "Teslim belgesi / not", "text"]], "returns": [["rental", "Kiralama", "ref:rentals"], ["warehouse", "İade deposu", "ref:warehouses"], ["date", "İade / tespit zamanı (Türkiye)", "datetime"], ["quantity", "Miktar", "integer"], ["condition", "Durum", "enum:Hasarsız,Hasarlı,Kayıp"], ["reference", "İade / hasar belgesi notu", "text"]], "rentalReceipts": [["rental", "Kiralama", "ref:rentals"], ["date", "Tarih", "date"], ["kind", "İşlem", "enum:Kira tahsilatı,Depozito alındı,Depozito iade edildi"], ["amount", "Tutar TL", "money"], ["method", "Yöntem", "enum:Nakit,Havale,POS"], ["note", "Açıklama", "optional"]], "customers": [["name", "Müşteri / firma", "text"], ["contact", "Yetkili kişi", "text"], ["email", "E-posta", "optional"], ["phone", "Telefon", "optional"], ["note", "Not", "optional"]], "opportunities": [["customer", "Müşteri", "ref:customers"], ["title", "İş fırsatı", "text"], ["date", "Etkinlik tarihi", "date"], ["venue", "Mekân", "text"], ["owner", "Sorumlu", "text"], ["stage", "Aşama", "enum:Yeni,Görüşülüyor,Teklif verildi,Kazanıldı,Kaybedildi"], ["expected", "Tahmini net tutar TL", "money"], ["reason", "Kayıp nedeni / not", "optional"]], "quotes": [["opportunity", "İş fırsatı", "ref:opportunities"], ["title", "Teklif başlığı", "text"], ["revision", "Revizyon", "integer"], ["validUntil", "Geçerlilik tarihi", "date"], ["status", "Durum", "enum:Taslak,Gönderildi,Onaylandı,Reddedildi"], ["approval", "Onaylayan / belge referansı", "optional"], ["event", "Oluşturulan etkinlik", "optref:events"], ["terms", "Koşullar", "optional"]], "quoteLines": [["quote", "Teklif", "ref:quotes"], ["description", "Kalem açıklaması", "text"], ["category", "Tür", "enum:Ürün,Kiralama,Personel,Nakliye,Hizmet"], ["product", "Ürün (varsa)", "optref:products"], ["warehouse", "Depo (kiralamada)", "optref:warehouses"], ["quantity", "Adet", "integer"], ["days", "Gün", "integer"], ["price", "Birim günlük net satış TL", "money"], ["cost", "Birim günlük net maliyet TL", "money"], ["vatRate", "KDV oranı yüzde", "money"]], "externalRentals": [["event", "Etkinlik", "ref:events"], ["vendor", "Kiralayan firma", "text"], ["description", "Ekipman", "text"], ["quantity", "Adet", "integer"], ["start", "Teslim zamanı", "datetime"], ["end", "İade zamanı", "datetime"], ["status", "Durum", "enum:Planlandı,Teslim alındı,İade edildi,İptal"], ["expense", "Finans gider kaydı", "optref:expenses"], ["reference", "Teslim / iade belgesi", "optional"]], "fieldReports": [["event", "Etkinlik", "ref:events"], ["task", "Görev", "optref:tasks"], ["title", "Saha bildirimi", "text"], ["owner", "Sorumlu", "text"], ["date", "Tarih", "date"], ["status", "Durum", "enum:Açık,İnceleniyor,Çözüldü"], ["note", "Açıklama", "text"]], "approvals": [["event", "Etkinlik", "optref:events"], ["quote", "Teklif (varsa)", "optref:quotes"], ["extra", "Ek iş (varsa)", "optref:extras"], ["title", "Onay konusu", "text"], ["version", "Belge / tasarım sürümü", "text"], ["email", "Müşteri hesap e-postası", "text"], ["status", "Karar", "enum:Bekliyor,Onaylandı,Reddedildi"], ["note", "Karar notu", "optional"]], "contractors": [["event", "Etkinlik", "ref:events"], ["name", "Taşeron / personel", "text"], ["description", "Yapılan iş", "text"], ["unit", "Birim", "enum:Saat,Gün,İş"], ["quantity", "Çalışılan birim", "money"], ["rate", "Birim net ücret TL", "money"], ["due", "Ödeme vadesi", "date"], ["expense", "Finans gider kaydı", "optref:expenses"]], "maintenance": [["product", "Ürün", "ref:products"], ["title", "Bakım / arıza", "text"], ["due", "Planlanan tarih", "date"], ["status", "Durum", "enum:Planlandı,Serviste,Tamamlandı"], ["cost", "Net bakım gideri TL", "money"], ["reference", "Servis belgesi / not", "optional"]], "investments": [["product", "Ürün", "ref:products"], ["date", "Alım tarihi", "date"], ["amount", "Toplam net yatırım TL", "money"], ["note", "Alım belgesi / not", "optional"]]}
+{
+  "events": [
+    [
+      "name",
+      "Etkinlik",
+      "text"
+    ],
+    [
+      "client",
+      "Müşteri",
+      "text"
+    ],
+    [
+      "date",
+      "Etkinlik tarihi",
+      "date"
+    ],
+    [
+      "venue",
+      "Mekân",
+      "text"
+    ],
+    [
+      "revenue",
+      "Sözleşme net TL",
+      "money"
+    ],
+    [
+      "budget",
+      "Maliyet bütçesi net TL",
+      "money"
+    ],
+    [
+      "vat",
+      "Sözleşme KDV tutarı TL",
+      "money"
+    ]
+  ],
+  "expenses": [
+    [
+      "event",
+      "Etkinlik",
+      "ref:events"
+    ],
+    [
+      "vendor",
+      "Tedarikçi",
+      "text"
+    ],
+    [
+      "description",
+      "Gider açıklaması",
+      "text"
+    ],
+    [
+      "net",
+      "Net gider TL",
+      "money"
+    ],
+    [
+      "vat",
+      "Kayıtlı KDV TL",
+      "money"
+    ],
+    [
+      "document",
+      "Belge durumu",
+      "enum:Faturalı,Faturasız,Belge bekleniyor"
+    ],
+    [
+      "number",
+      "Belge numarası / not",
+      "optional"
+    ],
+    [
+      "due",
+      "Ödeme vadesi",
+      "date"
+    ]
+  ],
+  "payments": [
+    [
+      "expense",
+      "Gider kaydı",
+      "ref:expenses"
+    ],
+    [
+      "date",
+      "Ödeme tarihi",
+      "date"
+    ],
+    [
+      "amount",
+      "Ödeme TL (KDV dahil)",
+      "money"
+    ],
+    [
+      "method",
+      "Yöntem",
+      "enum:Havale,Nakit,Kredi kartı"
+    ],
+    [
+      "card",
+      "Kart (kartlı işlemde)",
+      "optref:cards"
+    ],
+    [
+      "installments",
+      "Taksit sayısı",
+      "integer"
+    ],
+    [
+      "firstDue",
+      "İlk taksit vadesi (kartlı işlemde)",
+      "optionaldate"
+    ]
+  ],
+  "receipts": [
+    [
+      "event",
+      "Etkinlik",
+      "ref:events"
+    ],
+    [
+      "date",
+      "Tarih / vade",
+      "date"
+    ],
+    [
+      "amount",
+      "Tahsilat TL (KDV dahil)",
+      "money"
+    ],
+    [
+      "status",
+      "Durum",
+      "enum:Planlandı,Tahsil edildi"
+    ],
+    [
+      "method",
+      "Yöntem",
+      "enum:Havale,Nakit,POS"
+    ],
+    [
+      "note",
+      "Açıklama",
+      "optional"
+    ]
+  ],
+  "cards": [
+    [
+      "name",
+      "Kart adı / banka",
+      "text"
+    ],
+    [
+      "last4",
+      "Son dört hane",
+      "last4"
+    ],
+    [
+      "limit",
+      "Kart limiti TL",
+      "money"
+    ]
+  ],
+  "statements": [
+    [
+      "card",
+      "Kart",
+      "ref:cards"
+    ],
+    [
+      "cutoff",
+      "Hesap kesim tarihi",
+      "date"
+    ],
+    [
+      "due",
+      "Son ödeme tarihi",
+      "date"
+    ],
+    [
+      "amount",
+      "Banka ekstresi dönem borcu TL",
+      "money"
+    ]
+  ],
+  "cardPayments": [
+    [
+      "statement",
+      "Ekstre",
+      "ref:statements"
+    ],
+    [
+      "date",
+      "Bankaya ödeme tarihi",
+      "date"
+    ],
+    [
+      "amount",
+      "Ödenen TL",
+      "money"
+    ]
+  ],
+  "staff": [
+    [
+      "event",
+      "Etkinlik",
+      "ref:events"
+    ],
+    [
+      "name",
+      "Personel",
+      "text"
+    ],
+    [
+      "role",
+      "Görev",
+      "text"
+    ],
+    [
+      "days",
+      "Çalışma günü",
+      "integer"
+    ],
+    [
+      "rate",
+      "Günlük ücret TL",
+      "money"
+    ],
+    [
+      "due",
+      "Ödeme vadesi",
+      "date"
+    ]
+  ],
+  "advances": [
+    [
+      "staff",
+      "Personel kaydı",
+      "ref:staff"
+    ],
+    [
+      "date",
+      "Ödeme tarihi",
+      "date"
+    ],
+    [
+      "amount",
+      "Avans / ücret ödemesi TL",
+      "money"
+    ],
+    [
+      "method",
+      "Yöntem",
+      "enum:Nakit,Havale"
+    ]
+  ],
+  "extras": [
+    [
+      "event",
+      "Etkinlik",
+      "ref:events"
+    ],
+    [
+      "description",
+      "Ek iş / iade açıklaması",
+      "text"
+    ],
+    [
+      "kind",
+      "Tür",
+      "enum:Ek iş,Müşteri iadesi"
+    ],
+    [
+      "amount",
+      "Net tutar TL",
+      "money"
+    ],
+    [
+      "vat",
+      "KDV tutarı TL",
+      "money"
+    ],
+    [
+      "status",
+      "Onay",
+      "enum:Bekliyor,Onaylandı,Reddedildi"
+    ]
+  ],
+  "resources": [
+    [
+      "name",
+      "Ekipman / ekip / araç",
+      "text"
+    ],
+    [
+      "capacity",
+      "Aynı anda kullanılabilir adet",
+      "integer"
+    ]
+  ],
+  "allocations": [
+    [
+      "event",
+      "Etkinlik",
+      "ref:events"
+    ],
+    [
+      "resource",
+      "Kaynak",
+      "ref:resources"
+    ],
+    [
+      "start",
+      "Başlangıç (Türkiye saati)",
+      "datetime"
+    ],
+    [
+      "end",
+      "Bitiş (Türkiye saati)",
+      "datetime"
+    ],
+    [
+      "quantity",
+      "Ayrılan adet",
+      "integer"
+    ],
+    [
+      "buffer",
+      "Seyahat / hazırlık tamponu dakika",
+      "nonnegative"
+    ],
+    [
+      "status",
+      "Rezervasyon",
+      "enum:Kesin,Geçici"
+    ]
+  ],
+  "tasks": [
+    [
+      "event",
+      "Etkinlik",
+      "ref:events"
+    ],
+    [
+      "title",
+      "İş / görev",
+      "text"
+    ],
+    [
+      "owner",
+      "Sorumlu",
+      "text"
+    ],
+    [
+      "due",
+      "Son tarih",
+      "date"
+    ],
+    [
+      "status",
+      "Durum",
+      "enum:Bekliyor,Devam ediyor,Tamamlandı"
+    ],
+    [
+      "priority",
+      "Öncelik",
+      "enum:Yüksek,Normal,Düşük"
+    ]
+  ],
+  "operations": [
+    [
+      "event",
+      "Etkinlik",
+      "ref:events"
+    ],
+    [
+      "phase",
+      "Hazırlık başlığı",
+      "enum:Mekân keşfi,Kurulum,Teknik sistemler,Ekip,Sanatçı / protokol,Giriş / akreditasyon,İkram,İzin / belge,Alternatif plan,Söküm / iade"
+    ],
+    [
+      "title",
+      "Kontrol / yapılacak iş",
+      "text"
+    ],
+    [
+      "owner",
+      "Sorumlu kişi / ekip",
+      "text"
+    ],
+    [
+      "due",
+      "Son tarih",
+      "date"
+    ],
+    [
+      "status",
+      "Durum",
+      "enum:Başlanmadı,Devam ediyor,Teyit bekliyor,Tamamlandı,Uygulanmıyor"
+    ],
+    [
+      "critical",
+      "Önem",
+      "enum:Kritik,Normal"
+    ],
+    [
+      "evidence",
+      "Teyit / belge referansı",
+      "optional"
+    ],
+    [
+      "note",
+      "Eksik / açıklama",
+      "optional"
+    ]
+  ],
+  "documents": [
+    [
+      "target",
+      "Bağlı kayıt",
+      "text"
+    ],
+    [
+      "name",
+      "Dosya adı",
+      "text"
+    ]
+  ],
+  "warehouses": [
+    [
+      "name",
+      "Depo adı",
+      "text"
+    ],
+    [
+      "location",
+      "Adres / bölüm",
+      "text"
+    ],
+    [
+      "owner",
+      "Depo sorumlusu",
+      "text"
+    ]
+  ],
+  "products": [
+    [
+      "code",
+      "Ürün kodu",
+      "text"
+    ],
+    [
+      "name",
+      "Ürün adı",
+      "text"
+    ],
+    [
+      "category",
+      "Kategori",
+      "enum:Ses,Işık,Görüntü,Sahne,Mobilya,Dekor,Kablo / aksesuar,Diğer"
+    ],
+    [
+      "unit",
+      "Birim",
+      "enum:Adet,Set,Metre"
+    ],
+    [
+      "tracking",
+      "Takip",
+      "enum:Adet havuzu,Tekil varlık"
+    ],
+    [
+      "serial",
+      "Seri no (tekil varlıkta)",
+      "optional"
+    ],
+    [
+      "minimum",
+      "Uyarı eşiği",
+      "nonnegative"
+    ]
+  ],
+  "stockMoves": [
+    [
+      "product",
+      "Ürün",
+      "ref:products"
+    ],
+    [
+      "warehouse",
+      "Kaynak / işlem deposu",
+      "ref:warehouses"
+    ],
+    [
+      "destination",
+      "Hedef depo (transferde)",
+      "optref:warehouses"
+    ],
+    [
+      "date",
+      "Hareket zamanı (Türkiye)",
+      "datetime"
+    ],
+    [
+      "type",
+      "Hareket",
+      "enum:Giriş,Çıkış,Transfer"
+    ],
+    [
+      "condition",
+      "Durum",
+      "enum:Kullanılabilir,Hasarlı"
+    ],
+    [
+      "quantity",
+      "Miktar",
+      "integer"
+    ],
+    [
+      "note",
+      "Belge / açıklama",
+      "text"
+    ]
+  ],
+  "rentals": [
+    [
+      "event",
+      "Etkinlik (varsa)",
+      "optref:events"
+    ],
+    [
+      "customer",
+      "Kiracı / müşteri",
+      "text"
+    ],
+    [
+      "product",
+      "Ürün",
+      "ref:products"
+    ],
+    [
+      "warehouse",
+      "Çıkış deposu",
+      "ref:warehouses"
+    ],
+    [
+      "quantity",
+      "Kiralanan miktar",
+      "integer"
+    ],
+    [
+      "start",
+      "Rezervasyon başlangıcı (Türkiye)",
+      "datetime"
+    ],
+    [
+      "end",
+      "Planlanan iade (Türkiye)",
+      "datetime"
+    ],
+    [
+      "billDays",
+      "Ücretlendirilen gün",
+      "integer"
+    ],
+    [
+      "dailyRate",
+      "Birim günlük net kira TL",
+      "money"
+    ],
+    [
+      "discount",
+      "Toplam net indirim TL",
+      "money"
+    ],
+    [
+      "vat",
+      "Toplam KDV TL",
+      "money"
+    ],
+    [
+      "incomeMode",
+      "Gelir sayımı",
+      "enum:Bağımsız gelir,Etkinlik sözleşmesine dahil"
+    ],
+    [
+      "billing",
+      "Fatura durumu",
+      "enum:Teklif,Faturalandı"
+    ],
+    [
+      "status",
+      "Rezervasyon",
+      "enum:Taslak,Onaylandı,İptal"
+    ]
+  ],
+  "dispatches": [
+    [
+      "rental",
+      "Kiralama",
+      "ref:rentals"
+    ],
+    [
+      "date",
+      "Teslim zamanı (Türkiye)",
+      "datetime"
+    ],
+    [
+      "quantity",
+      "Teslim edilen miktar",
+      "integer"
+    ],
+    [
+      "recipient",
+      "Teslim alan",
+      "text"
+    ],
+    [
+      "reference",
+      "Teslim belgesi / not",
+      "text"
+    ]
+  ],
+  "returns": [
+    [
+      "rental",
+      "Kiralama",
+      "ref:rentals"
+    ],
+    [
+      "warehouse",
+      "İade deposu",
+      "ref:warehouses"
+    ],
+    [
+      "date",
+      "İade / tespit zamanı (Türkiye)",
+      "datetime"
+    ],
+    [
+      "quantity",
+      "Miktar",
+      "integer"
+    ],
+    [
+      "condition",
+      "Durum",
+      "enum:Hasarsız,Hasarlı,Kayıp"
+    ],
+    [
+      "reference",
+      "İade / hasar belgesi notu",
+      "text"
+    ]
+  ],
+  "rentalReceipts": [
+    [
+      "rental",
+      "Kiralama",
+      "ref:rentals"
+    ],
+    [
+      "date",
+      "Tarih",
+      "date"
+    ],
+    [
+      "kind",
+      "İşlem",
+      "enum:Kira tahsilatı,Depozito alındı,Depozito iade edildi"
+    ],
+    [
+      "amount",
+      "Tutar TL",
+      "money"
+    ],
+    [
+      "method",
+      "Yöntem",
+      "enum:Nakit,Havale,POS"
+    ],
+    [
+      "note",
+      "Açıklama",
+      "optional"
+    ]
+  ],
+  "customers": [
+    [
+      "name",
+      "Müşteri / firma",
+      "text"
+    ],
+    [
+      "contact",
+      "Yetkili kişi",
+      "text"
+    ],
+    [
+      "email",
+      "E-posta",
+      "optional"
+    ],
+    [
+      "phone",
+      "Telefon",
+      "optional"
+    ],
+    [
+      "note",
+      "Not",
+      "optional"
+    ]
+  ],
+  "opportunities": [
+    [
+      "customer",
+      "Müşteri",
+      "ref:customers"
+    ],
+    [
+      "title",
+      "İş fırsatı",
+      "text"
+    ],
+    [
+      "date",
+      "Etkinlik tarihi",
+      "date"
+    ],
+    [
+      "venue",
+      "Mekân",
+      "text"
+    ],
+    [
+      "owner",
+      "Sorumlu",
+      "text"
+    ],
+    [
+      "stage",
+      "Aşama",
+      "enum:Yeni,Görüşülüyor,Teklif verildi,Kazanıldı,Kaybedildi"
+    ],
+    [
+      "expected",
+      "Tahmini net tutar TL",
+      "money"
+    ],
+    [
+      "reason",
+      "Kayıp nedeni / not",
+      "optional"
+    ]
+  ],
+  "quotes": [
+    [
+      "opportunity",
+      "İş fırsatı",
+      "ref:opportunities"
+    ],
+    [
+      "title",
+      "Teklif başlığı",
+      "text"
+    ],
+    [
+      "revision",
+      "Revizyon",
+      "integer"
+    ],
+    [
+      "validUntil",
+      "Geçerlilik tarihi",
+      "date"
+    ],
+    [
+      "status",
+      "Durum",
+      "enum:Taslak,Gönderildi,Onaylandı,Reddedildi"
+    ],
+    [
+      "approval",
+      "Onaylayan / belge referansı",
+      "optional"
+    ],
+    [
+      "event",
+      "Oluşturulan etkinlik",
+      "optref:events"
+    ],
+    [
+      "terms",
+      "Koşullar",
+      "optional"
+    ]
+  ],
+  "quoteLines": [
+    [
+      "quote",
+      "Teklif",
+      "ref:quotes"
+    ],
+    [
+      "description",
+      "Kalem açıklaması",
+      "text"
+    ],
+    [
+      "category",
+      "Tür",
+      "enum:Ürün,Kiralama,Personel,Nakliye,Hizmet"
+    ],
+    [
+      "product",
+      "Ürün (varsa)",
+      "optref:products"
+    ],
+    [
+      "warehouse",
+      "Depo (kiralamada)",
+      "optref:warehouses"
+    ],
+    [
+      "quantity",
+      "Adet",
+      "integer"
+    ],
+    [
+      "days",
+      "Gün",
+      "integer"
+    ],
+    [
+      "price",
+      "Birim günlük net satış TL",
+      "money"
+    ],
+    [
+      "cost",
+      "Birim günlük net maliyet TL",
+      "money"
+    ],
+    [
+      "vatRate",
+      "KDV oranı yüzde",
+      "money"
+    ]
+  ],
+  "externalRentals": [
+    [
+      "event",
+      "Etkinlik",
+      "ref:events"
+    ],
+    [
+      "vendor",
+      "Kiralayan firma",
+      "text"
+    ],
+    [
+      "description",
+      "Ekipman",
+      "text"
+    ],
+    [
+      "quantity",
+      "Adet",
+      "integer"
+    ],
+    [
+      "start",
+      "Teslim zamanı",
+      "datetime"
+    ],
+    [
+      "end",
+      "İade zamanı",
+      "datetime"
+    ],
+    [
+      "status",
+      "Durum",
+      "enum:Planlandı,Teslim alındı,İade edildi,İptal"
+    ],
+    [
+      "expense",
+      "Finans gider kaydı",
+      "optref:expenses"
+    ],
+    [
+      "reference",
+      "Teslim / iade belgesi",
+      "optional"
+    ]
+  ],
+  "fieldReports": [
+    [
+      "event",
+      "Etkinlik",
+      "ref:events"
+    ],
+    [
+      "task",
+      "Görev",
+      "optref:tasks"
+    ],
+    [
+      "title",
+      "Saha bildirimi",
+      "text"
+    ],
+    [
+      "owner",
+      "Sorumlu",
+      "text"
+    ],
+    [
+      "date",
+      "Tarih",
+      "date"
+    ],
+    [
+      "status",
+      "Durum",
+      "enum:Açık,İnceleniyor,Çözüldü"
+    ],
+    [
+      "note",
+      "Açıklama",
+      "text"
+    ]
+  ],
+  "approvals": [
+    [
+      "event",
+      "Etkinlik",
+      "optref:events"
+    ],
+    [
+      "quote",
+      "Teklif (varsa)",
+      "optref:quotes"
+    ],
+    [
+      "extra",
+      "Ek iş (varsa)",
+      "optref:extras"
+    ],
+    [
+      "title",
+      "Onay konusu",
+      "text"
+    ],
+    [
+      "version",
+      "Belge / tasarım sürümü",
+      "text"
+    ],
+    [
+      "email",
+      "Müşteri hesap e-postası",
+      "text"
+    ],
+    [
+      "status",
+      "Karar",
+      "enum:Bekliyor,Onaylandı,Reddedildi"
+    ],
+    [
+      "note",
+      "Karar notu",
+      "optional"
+    ]
+  ],
+  "contractors": [
+    [
+      "event",
+      "Etkinlik",
+      "ref:events"
+    ],
+    [
+      "name",
+      "Taşeron / personel",
+      "text"
+    ],
+    [
+      "description",
+      "Yapılan iş",
+      "text"
+    ],
+    [
+      "unit",
+      "Birim",
+      "enum:Saat,Gün,İş"
+    ],
+    [
+      "quantity",
+      "Çalışılan birim",
+      "money"
+    ],
+    [
+      "rate",
+      "Birim net ücret TL",
+      "money"
+    ],
+    [
+      "due",
+      "Ödeme vadesi",
+      "date"
+    ],
+    [
+      "expense",
+      "Finans gider kaydı",
+      "optref:expenses"
+    ]
+  ],
+  "maintenance": [
+    [
+      "product",
+      "Ürün",
+      "ref:products"
+    ],
+    [
+      "title",
+      "Bakım / arıza",
+      "text"
+    ],
+    [
+      "due",
+      "Planlanan tarih",
+      "date"
+    ],
+    [
+      "status",
+      "Durum",
+      "enum:Planlandı,Serviste,Tamamlandı"
+    ],
+    [
+      "cost",
+      "Net bakım gideri TL",
+      "money"
+    ],
+    [
+      "reference",
+      "Servis belgesi / not",
+      "optional"
+    ]
+  ],
+  "investments": [
+    [
+      "product",
+      "Ürün",
+      "ref:products"
+    ],
+    [
+      "date",
+      "Alım tarihi",
+      "date"
+    ],
+    [
+      "amount",
+      "Toplam net yatırım TL",
+      "money"
+    ],
+    [
+      "note",
+      "Alım belgesi / not",
+      "optional"
+    ]
+  ],
+  "surveys": [
+    [
+      "event",
+      "Etkinlik",
+      "ref:events"
+    ],
+    [
+      "title",
+      "Alan / keşif başlığı",
+      "text"
+    ],
+    [
+      "date",
+      "Keşif tarihi",
+      "date"
+    ],
+    [
+      "width",
+      "En (metre)",
+      "money"
+    ],
+    [
+      "length",
+      "Boy (metre)",
+      "money"
+    ],
+    [
+      "quantity",
+      "Adet",
+      "integer"
+    ],
+    [
+      "source",
+      "Ölçüm kaynağı",
+      "enum:Yerinde ölçüm,Mekân beyanı,Varsayım"
+    ],
+    [
+      "note",
+      "Keşif notları",
+      "optional"
+    ]
+  ]
+}
