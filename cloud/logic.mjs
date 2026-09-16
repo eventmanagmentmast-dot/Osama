@@ -1,9 +1,9 @@
 import schema from './schema.json' with {type:'json'};
 import {validateBusiness} from './business.mjs';
 export {schema};
-const finance=new Set(['catalogueRequests','catalogueEntries','invoiceSubmissions','taxScenarios','customers','opportunities','quotes','quoteLines','externalRentals','contractors','maintenance','investments','approvals','expenses','payments','receipts','cards','statements','cardPayments','staff','advances','extras','rentals','rentalReceipts','products','warehouses','events','documents','dispatches','returns','stockMoves']);
-const ops=new Set(['catalogueRequests','catalogueEntries','fieldReports','externalRentals','maintenance','events','resources','allocations','tasks','operations','warehouses','products','stockMoves','rentals','dispatches','returns']);
-export const sensitive={events:['revenue','budget','vat'],externalRentals:['expense'],maintenance:['cost'],rentals:['dailyRate','discount','vat','billing','incomeMode','billDays']};
+const finance=new Set(['catalogueRequests','catalogueEntries','invoiceSubmissions','taxScenarios','customers','opportunities','quotes','quoteLines','externalRentals','contractors','maintenance','investments','approvals','expenses','payments','receipts','cards','statements','cardPayments','staff','advances','extras','rentals','rentalReceipts','products','warehouses','events','documents','dispatches','returns','stockMoves','transportServices']);
+const ops=new Set(['catalogueRequests','catalogueEntries','fieldReports','externalRentals','maintenance','events','resources','allocations','tasks','operations','warehouses','products','stockMoves','rentals','dispatches','returns','eventEntrances','attendees','attendeeCheckIns','attendeeFlights','transportServices','passengerTransfers']);
+export const sensitive={events:['revenue','budget','vat'],externalRentals:['expense'],maintenance:['cost'],rentals:['dailyRate','discount','vat','billing','incomeMode','billDays'],transportServices:['price']};
 export const allowed=(role,kind,write=false)=>role==='admin'||role==='finance'&&finance.has(kind)&&(!write||!['dispatches','returns','stockMoves'].includes(kind))||role==='operations'&&ops.has(kind)&&(!write||!['events','rentals'].includes(kind));
 export function filtered(data,role){return Object.fromEntries(Object.entries(data).filter(([k])=>allowed(role,k)).map(([k,rs])=>[k,rs.map(r=>Object.fromEntries(Object.entries(r).filter(([f])=>role!=='operations'||!sensitive[k]?.includes(f))))]));}
 const fail=m=>{throw Object.assign(new Error(m),{status:400})};
@@ -24,6 +24,12 @@ export function validate(kind,x,data){
 }
 export function validateWarehouse(data){
  const partnerShares=new Map();for(const p of data.partners||[]){const key=p.company.trim().toLocaleLowerCase('tr'),share=(partnerShares.get(key)||0)+p.share;partnerShares.set(key,share);if(share>100.001)fail('Bir şirkette ortaklık payları toplamı %100 üzerinde olamaz');}
+ const byId=(k,id)=>(data[k]||[]).find(r=>r.id===id),tokens=(data.attendees||[]).map(r=>r.qrToken.toLocaleLowerCase('tr'));if(new Set(tokens).size!==tokens.length)fail('Misafir QR kodu benzersiz olmalı');
+ for(const gate of data.eventEntrances||[])if(gate.closeAt<=gate.openAt)fail('Giriş kapanış zamanı açılıştan sonra olmalı');
+ for(const guest of data.attendees||[]){const gate=guest.entrance&&byId('eventEntrances',guest.entrance);if(gate&&gate.event!==guest.event)fail('Misafirin giriş noktası aynı etkinliğe ait olmalı');}
+ for(const move of data.attendeeCheckIns||[]){const guest=byId('attendees',move.attendee),gate=byId('eventEntrances',move.entrance);if(!guest||!gate||guest.event!==gate.event||guest.entrance&&guest.entrance!==gate.id)fail('QR giriş kaydı misafir ve atanan girişle uyuşmuyor');}
+ for(const service of data.transportServices||[]){if(service.end<=service.start)fail('Ulaşım hizmeti bitişi başlangıçtan sonra olmalı');if(service.serviceMode==='Etkinlik hizmeti'&&!service.event)fail('Etkinlik hizmeti için bağlı etkinliği seçin');}
+ for(const assignment of data.passengerTransfers||[]){const guest=byId('attendees',assignment.attendee),service=byId('transportServices',assignment.service);if(!guest||!service)continue;if(service.event&&service.event!==guest.event)fail('Yolcu ve ulaşım hizmeti aynı etkinliğe ait olmalı');const used=(data.passengerTransfers||[]).filter(x=>x.service===service.id&&x.status!=='İptal').length;if(used>service.vehicleCount*service.seatCapacity)fail('Araç koltuk kapasitesi aşıldı');}
 
  const rows=k=>data[k]||[],total=(rs,f)=>rs.reduce((s,x)=>s+f(x),0),products=Object.fromEntries(rows('products').map(p=>[p.id,p]));
  const codes=rows('products').map(p=>p.code.toLocaleLowerCase('tr-TR'));if(new Set(codes).size!==codes.length)fail('Ürün kodu benzersiz olmalı');

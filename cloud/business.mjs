@@ -8,6 +8,8 @@ export function validateBusiness(k,r){
  if(k==='quoteLines'&&(r.vatRate>100||r.category==='Kiralama'&&(!r.product||!r.warehouse)))fail('KDV oranı veya kiralama ürün/depo bilgisi geçersiz');
  if(k==='externalRentals'&&r.end<=r.start)fail('İade teslimden sonra olmalı');
  if(k==='maintenance'&&r.status==='Tamamlandı'&&!r.reference)fail('Servis belgesi / not gerekli');
+ if(k==='attendees'&&!/^OSAMA-LCV-[A-Za-z0-9-]{6,100}$/.test(r.qrToken))fail('Misafir QR kodu geçersiz');
+ if(k==='attendeeFlights'&&(!/^[A-Za-z]{3}$/.test(r.originIata)||!/^[A-Za-z]{3}$/.test(r.destinationIata)))fail('Havalimanı için üç harfli IATA kodu girin');
  if(k==='approvals'&&!r.event&&!r.quote)fail('Etkinlik veya teklif seçin');
 }
 export function convertQuote(data,qid,eid){

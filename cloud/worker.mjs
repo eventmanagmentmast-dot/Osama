@@ -24,6 +24,22 @@ async function commit(db,revision,actor,action,operations){
 const putRecord=(kind,rid,record)=>({sql:'INSERT OR REPLACE INTO records(kind,id,payload) SELECT ?,?,? WHERE $GUARD',values:[kind,rid,JSON.stringify(record)]});
 function bytes64(s){if(typeof s!=='string')throw error('Belge verisi geçersiz');let raw;try{raw=atob(s)}catch{throw error('Belge verisi geçersiz')}if(raw.length>10*1024*1024)throw error('Belge en fazla 10 MB olabilir');return Uint8Array.from(raw,c=>c.charCodeAt(0));}
 function base64(bytes){let s='';for(let i=0;i<bytes.length;i+=8192)s+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(s);}
+function skyscannerUrl(x){const day=v=>String(v||'').replaceAll('-','').slice(2),back=x.returnDate?day(x.returnDate)+'/':'';return 'https://www.skyscanner.com.tr/transport/flights/'+x.from.toLowerCase()+'/'+x.to.toLowerCase()+'/'+day(x.date)+'/'+back+'?adultsv2='+x.adults+'&cabinclass='+encodeURIComponent(x.cabin)+'&rtn='+(x.returnDate?'1':'0');}
+async function searchFlights(env,x){
+ const clean={from:String(x.from||'').toUpperCase(),to:String(x.to||'').toUpperCase(),date:String(x.date||''),returnDate:String(x.returnDate||''),adults:Number(x.adults||1),cabin:String(x.cabin||'economy')};
+ if(!/^[A-Z]{3}$/.test(clean.from)||!/^[A-Z]{3}$/.test(clean.to)||!/^\d{4}-\d{2}-\d{2}$/.test(clean.date)||clean.returnDate&&!/^\d{4}-\d{2}-\d{2}$/.test(clean.returnDate)||!Number.isInteger(clean.adults)||clean.adults<1||clean.adults>9)throw error('Uçuş arama bilgileri geçersiz');
+ const url=skyscannerUrl(clean);if(!env.SKYSCANNER_API_KEY)return {available:false,url,options:[]};
+ const leg=(a,b,d)=>{const [year,month,day]=d.split('-').map(Number);return {originPlaceId:{iata:a},destinationPlaceId:{iata:b},date:{year,month,day}}};
+ const cabin={economy:'CABIN_CLASS_ECONOMY',premiumeconomy:'CABIN_CLASS_PREMIUM_ECONOMY',business:'CABIN_CLASS_BUSINESS',first:'CABIN_CLASS_FIRST'}[clean.cabin]||'CABIN_CLASS_ECONOMY';
+ const queryLegs=[leg(clean.from,clean.to,clean.date)];if(clean.returnDate)queryLegs.push(leg(clean.to,clean.from,clean.returnDate));
+ const headers={'x-api-key':env.SKYSCANNER_API_KEY,'Content-Type':'application/json'};
+ let response=await fetch('https://partners.api.skyscanner.net/apiservices/v3/flights/live/search/create',{method:'POST',headers,body:JSON.stringify({query:{market:'TR',locale:'tr-TR',currency:'TRY',queryLegs,adults:clean.adults,cabinClass:cabin}})});
+ if(!response.ok)throw error('Canlı uçuş sağlayıcısına ulaşılamadı',502);let result=await response.json(),token=result.sessionToken;
+ if(token){response=await fetch('https://partners.api.skyscanner.net/apiservices/v3/flights/live/search/poll/'+encodeURIComponent(token),{method:'POST',headers});if(response.ok)result=await response.json();}
+ const itineraries=Object.values(result.content?.results?.itineraries||{}),agents=result.content?.results?.agents||{};
+ const options=itineraries.flatMap(it=>(it.pricingOptions||[]).map(p=>({price:p.price?.amount||p.price||'',currency:'TRY',deepLink:p.items?.[0]?.deepLink||url,provider:agents[p.items?.[0]?.agentId]?.name||'Skyscanner'}))).filter(x=>x.price).sort((a,b)=>Number(a.price)-Number(b.price)).slice(0,8);
+ return {available:true,url,options};
+}
 async function backup(data,bucket){const files={};let total=0;for(const d of data.documents){const object=await bucket.get(d.storageKey);if(!object)throw error('Yedek için bir belgeye ulaşılamadı',503);const bytes=new Uint8Array(await object.arrayBuffer());total+=bytes.length;if(total>12*1024*1024)throw error('Tek JSON yedeği için belge toplamı 12 MB sınırını aşıyor. Belgeleri ayrı indirin.',413);files[d.id]=base64(bytes);}return {version:1,data:Object.fromEntries(Object.entries(data).map(([k,rs])=>[k,rs.map(({storageKey,...r})=>r)])),files};}
 export async function handle(request,env){
  const url=new URL(request.url),path=url.pathname;
@@ -65,7 +81,9 @@ export async function handle(request,env){
  if(!x||typeof x!=='object'||Array.isArray(x))throw error('Geçersiz istek');
  if(x.expectedRevision!==snap.revision)throw error('Kayıtlar değişti. Paneli yenileyip tekrar deneyin.',409);
  const ops=[];
- if(path==='/api/catalogue-action'){
+ if(path==='/api/flight-search'){
+  if(!['admin','operations','finance'].includes(role))throw error('Yetki yok',403);return json(await searchFlights(env,x));
+ }else if(path==='/api/catalogue-action'){
   const result=catalogueTransition(snap.data,email,role,x,id(),new Date().toISOString());ops.push(putRecord('catalogueRequests',result.requestId,result.request));if(result.entry)ops.push(putRecord('catalogueEntries',result.entryId,result.entry));
  }else if(path==='/api/invoice-approval'){
 

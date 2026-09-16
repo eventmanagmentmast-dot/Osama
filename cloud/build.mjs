@@ -5,7 +5,7 @@ const read=p=>readFile(p,'utf8');
 await mkdir('dist/server',{recursive:true});
 await mkdir('dist/.openai',{recursive:true});
 const assets={};
-for(const file of ['index.html','app.js','style.css','warehouse.js','business.js','qrcode.js','experience.js','experience.css','finance-core.js','finance-ui.js','approval-ui.js','reconciliation-ui.js','partners-ui.js','equipment-ui.js','catalogue-ui.js','pdf-reader.mjs','pdf-engine.mjs','pdf-worker.mjs','sample.json'])assets['/'+(file==='index.html'?'':file)]=await read(file);
+for(const file of ['index.html','app.js','style.css','warehouse.js','business.js','qrcode.js','experience.js','experience.css','finance-core.js','finance-ui.js','approval-ui.js','reconciliation-ui.js','partners-ui.js','equipment-ui.js','catalogue-ui.js','lcv-ui.js','pdf-reader.mjs','pdf-engine.mjs','pdf-worker.mjs','sample.json'])assets['/'+(file==='index.html'?'':file)]=await read(file);
 assets['/event-scene.png']=(await readFile('event-scene.png')).toString('base64');
 assets['/brand-mark.png']=(await readFile('brand-mark.png')).toString('base64');
 assets['/cloud-ui.js']=await read('cloud/ui.js');
