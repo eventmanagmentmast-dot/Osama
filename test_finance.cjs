@@ -1,0 +1,14 @@
+const {strict:assert}=require('node:assert');const {incomeTax2026,taxEstimate,invoiceSuggestions}=require('./finance-core.js');
+assert.equal(invoiceSuggestions('e-Arşiv Fatura').invoiceType,'e-Arşiv Fatura');
+assert.equal(invoiceSuggestions('E-FATURA').invoiceType,'e-Fatura');
+assert.equal(invoiceSuggestions('e-Arşiv Fatura / e-Fatura').invoiceType,'Belirlenmedi');
+for(const [base,tax] of [[0,0],[190000,28500],[400000,70500],[1000000,232500],[5300000,1737500],[5300100,1737540]])assert.equal(incomeTax2026(base),tax);
+const x={year:'2026',type:'Limited şirket',revenue:1000,cost:200,additions:0,deductions:0,rate:25,credits:50,withholdingBase:100,withholdingRate:20};
+assert.deepEqual(taxEstimate(x),{profit:800,base:800,tax:200,net:600,payable:150,excessCredit:0,withholding:20});
+assert.equal(taxEstimate({...x,credits:300}).net,600);assert.equal(taxEstimate({...x,credits:300}).excessCredit,100);
+assert.equal(taxEstimate({...x,revenue:0}).net,-200);assert.throws(()=>taxEstimate({...x,year:'2027'}));assert.throws(()=>taxEstimate({...x,rate:101}));
+let r=invoiceSuggestions('Mal Hizmet Toplam Tutarı 1.000,00 TL\nHesaplanan KDV (%20) 200,00 TL\nVergiler Dahil Toplam Tutar 1.200,00 TL');assert.equal(r.net,1000);assert.equal(r.vat,200);assert.equal(r.total,1200);assert.deepEqual(r.taxRates,['KDV: %20']);
+r=invoiceSuggestions('Hesaplanan KDV (%10) 100,00 TL\nHesaplanan KDV (%20) 200,00 TL\nTevkifat 7/10 140,00 TL\nStopaj %20 200,00 TL');assert.equal(r.vat,null);assert.deepEqual(r.taxRates,['KDV: %10','KDV: %20','Tevkifat: 7/10','Stopaj: %20']);assert.ok(r.warning);
+r=invoiceSuggestions('KDV Oranı: 20\nGenel Toplam 1,234.56');assert.equal(r.total,1234.56);assert.deepEqual(r.taxRates,['KDV: %20']);assert.equal(r.net,null);
+r=invoiceSuggestions('Hesaplanan KDV (%20,00) 200,00');assert.equal(r.vat,200);assert.deepEqual(r.taxRates,['KDV: %20']);
+console.log('PASS: tariff boundaries, loss, credits without duplicate deductions, labelled invoice amounts and separate tax rates');

@@ -425,5 +425,250 @@
       "Keşif notları",
       "optional"
     ]
+  ],
+  "taxScenarios": [
+    [
+      "company",
+      "Şirket / hesap adı",
+      "text"
+    ],
+    [
+      "type",
+      "Şirket türü",
+      "enum:Şahıs işletmesi,Serbest meslek,Limited şirket,Anonim şirket"
+    ],
+    [
+      "year",
+      "Yıllık dönem",
+      "enum:2026"
+    ],
+    [
+      "revenue",
+      "Yıllık gelir toplamı · KDV hariç TL",
+      "money"
+    ],
+    [
+      "cost",
+      "Yıllık gider toplamı · KDV hariç brüt TL",
+      "money"
+    ],
+    [
+      "additions",
+      "Matraha ilaveler (KKEG vb.) TL",
+      "money"
+    ],
+    [
+      "deductions",
+      "Teyit edilmiş matrah indirimleri TL",
+      "money"
+    ],
+    [
+      "rate",
+      "Teyit edilmiş kurumlar vergisi oranı %",
+      "money"
+    ],
+    [
+      "credits",
+      "Mahsup edilebilir geçici vergi ve kendi gelirinden kesilen vergi TL",
+      "money"
+    ],
+    [
+      "withholdingBase",
+      "Başkası adına ödenecek stopajın brüt matrahı TL",
+      "money"
+    ],
+    [
+      "withholdingRate",
+      "Bu stopaj için teyit edilmiş oran %",
+      "money"
+    ],
+    [
+      "note",
+      "Kapsam / hesaplama notu",
+      "optional"
+    ]
+  ],
+  "invoiceSubmissions": [
+    [
+      "event",
+      "Etkinlik",
+      "ref:events"
+    ],
+    [
+      "vendor",
+      "Tedarikçi",
+      "text"
+    ],
+    [
+      "description",
+      "Gider açıklaması",
+      "text"
+    ],
+    [
+      "net",
+      "Net gider TL",
+      "money"
+    ],
+    [
+      "vat",
+      "Kayıtlı KDV TL",
+      "money"
+    ],
+    [
+      "document",
+      "Belge durumu",
+      "enum:Faturalı,Faturasız,Belge bekleniyor"
+    ],
+    [
+      "number",
+      "Belge numarası / not",
+      "optional"
+    ],
+    [
+      "due",
+      "Ödeme vadesi",
+      "date"
+    ],
+    [
+      "taxRates",
+      "Belgedeki vergi oranları · KDV / stopaj / tevkifat",
+      "optional"
+    ],
+    [
+      "owner",
+      "Gönderen",
+      "text"
+    ],
+    [
+      "status",
+      "Onay durumu",
+      "enum:Onay bekliyor,Düzeltme istendi,Onaylandı"
+    ],
+    [
+      "submittedAt",
+      "Gönderilme zamanı",
+      "text"
+    ],
+    [
+      "reviewer",
+      "İnceleyen",
+      "optional"
+    ],
+    [
+      "reviewedAt",
+      "İnceleme zamanı",
+      "optional"
+    ],
+    [
+      "reviewNote",
+      "Karar / düzeltme gerekçesi",
+      "optional"
+    ],
+    [
+      "expense",
+      "Onaylı gider",
+      "optref:expenses"
+    ],
+    [
+      "invoiceType",
+      "Fatura türü",
+      "optional"
+    ]
+  ],
+  "partners": [
+    [
+      "company",
+      "Şirket adı",
+      "text"
+    ],
+    [
+      "name",
+      "Ortak adı",
+      "text"
+    ],
+    [
+      "share",
+      "Ortaklık payı %",
+      "money"
+    ],
+    [
+      "note",
+      "Pay kararı / not",
+      "optional"
+    ]
+  ],
+  "partnerMovements": [
+    [
+      "partner",
+      "Ortak",
+      "ref:partners"
+    ],
+    [
+      "date",
+      "Tarih",
+      "date"
+    ],
+    [
+      "kind",
+      "Hareket türü",
+      "enum:Şirkete para yatırma,Ortak çekişi / avans,Kâr payı ödemesi,Şirket adına cebinden masraf,Ortağa masraf iadesi,Kişisel masraf · şirket ödedi"
+    ],
+    [
+      "amount",
+      "Tutar TL",
+      "money"
+    ],
+    [
+      "document",
+      "Belge durumu",
+      "enum:Faturalı,Faturasız,Belge bekleniyor,Uygulanmaz"
+    ],
+    [
+      "accounting",
+      "Muhasebe kayıt durumu",
+      "enum:İşlenmedi / inceleme bekliyor,Resmi kayda işlendi"
+    ],
+    [
+      "reference",
+      "Belge / işlem numarası",
+      "optional"
+    ],
+    [
+      "event",
+      "İş (varsa)",
+      "optref:events"
+    ],
+    [
+      "expense",
+      "Bağlı gider (varsa)",
+      "optref:expenses"
+    ],
+    [
+      "note",
+      "Açıklama",
+      "optional"
+    ]
+  ],
+  "partnerProfitPools": [
+    [
+      "company",
+      "Şirket adı",
+      "text"
+    ],
+    [
+      "year",
+      "Yıl",
+      "text"
+    ],
+    [
+      "amount",
+      "Vergiler sonrası dağıtılabilir tutar TL",
+      "money"
+    ],
+    [
+      "note",
+      "Karar / hesap dayanağı",
+      "text"
+    ]
   ]
 }

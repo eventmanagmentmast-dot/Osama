@@ -2,10 +2,14 @@ import json
 from datetime import date,timedelta
 from pathlib import Path
 SCHEMA=json.loads((Path(__file__).parent/'business-schema.json').read_text(encoding='utf-8'))
-FINANCE={'customers','opportunities','quotes','quoteLines','externalRentals','contractors','maintenance','investments','approvals'}
+FINANCE={'invoiceSubmissions','taxScenarios','customers','opportunities','quotes','quoteLines','externalRentals','contractors','maintenance','investments','approvals'}
 OPS={'fieldReports','externalRentals','maintenance'}
 
 def validate(kind,r):
+ if kind=='partners' and r['share']>100:raise ValueError('Ortaklık payı %100 üzerinde olamaz')
+ if kind=='partnerProfitPools' and (not r['year'].isdigit() or not 2000<=int(r['year'])<=2100):raise ValueError('Geçerli yıl girin')
+ if kind in {'expenses','invoiceSubmissions'} and r.get('invoiceType') and r['invoiceType'] not in {'Belirlenmedi','e-Fatura','e-Arşiv Fatura','Diğer / kâğıt fatura'}:raise ValueError('Fatura türü geçersiz')
+ if kind=='taxScenarios' and (r['rate']>100 or r['withholdingRate']>100):raise ValueError('Oran en fazla %100 olabilir')
  if kind=='quotes' and r['status']=='Onaylandı' and not r['approval']:raise ValueError('Onay referansı gerekli')
  if kind=='approvals' and not r['event'] and not r['quote']:raise ValueError('Etkinlik veya teklif seçin')
  if kind=='quoteLines':

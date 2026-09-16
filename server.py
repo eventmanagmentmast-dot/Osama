@@ -1,5 +1,5 @@
 import os,json,sqlite3,secrets,hashlib,hmac,time,base64,io,csv,zipfile,threading
-import warehouse,business
+import warehouse,business,invoice_local
 from pathlib import Path
 from http.server import ThreadingHTTPServer,BaseHTTPRequestHandler
 from urllib.parse import urlparse
@@ -23,6 +23,8 @@ SCHEMA={
 'operations':[('event','Etkinlik','ref:events'),('phase','Hazırlık başlığı','enum:Mekân keşfi,Kurulum,Teknik sistemler,Ekip,Sanatçı / protokol,Giriş / akreditasyon,İkram,İzin / belge,Alternatif plan,Söküm / iade'),('title','Kontrol / yapılacak iş','text'),('owner','Sorumlu kişi / ekip','text'),('due','Son tarih','date'),('status','Durum','enum:Başlanmadı,Devam ediyor,Teyit bekliyor,Tamamlandı,Uygulanmıyor'),('critical','Önem','enum:Kritik,Normal'),('evidence','Teyit / belge referansı','optional'),('note','Eksik / açıklama','optional')],
 'documents':[('target','Bağlı kayıt','text'),('name','Dosya adı','text')]
 }
+SCHEMA['expenses'].append(['taxRates','Belgedeki vergi oranları · KDV / stopaj / tevkifat','optional'])
+SCHEMA['expenses'].append(['invoiceType','Fatura türü','optional'])
 SCHEMA.update(warehouse.SCHEMA)
 SCHEMA.update(business.SCHEMA)
 FINANCE={'expenses','payments','receipts','cards','statements','cardPayments','staff','advances','extras','rentals','rentalReceipts','products','warehouses'}
@@ -92,7 +94,7 @@ class Handler(BaseHTTPRequestHandler):
   if path in {'/','/app.js','/style.css','/sample.json','/warehouse.js'}:
    file={'/':'index.html','/app.js':'app.js','/style.css':'style.css','/warehouse.js':'warehouse.js','/sample.json':'sample.json'}[path];return self.send(200,(ROOT/file).read_bytes(),{'/':'text/html; charset=utf-8','/app.js':'text/javascript; charset=utf-8','/style.css':'text/css; charset=utf-8','/warehouse.js':'text/javascript; charset=utf-8','/sample.json':'application/octet-stream'}[path])
   if path in {'/experience.css','/brand-mark.png','/event-scene.png'}:return self.send(200,(ROOT/path[1:]).read_bytes(),'image/png' if path.endswith('.png') else 'text/css; charset=utf-8')
-  if path in {'/business.js','/qrcode.js','/experience.js'}:return self.send(200,(ROOT/path[1:]).read_bytes(),'text/javascript; charset=utf-8')
+  if path in {'/business.js','/qrcode.js','/experience.js','/finance-core.js','/finance-ui.js','/approval-ui.js','/reconciliation-ui.js','/partners-ui.js','/pdf-reader.mjs','/pdf-engine.mjs','/pdf-worker.mjs'}:return self.send(200,(ROOT/path[1:]).read_bytes(),'text/javascript; charset=utf-8')
   with connect() as c:
    user=self.user(c)
    if path=='/api/session':return self.send(200,{'setup':not c.execute('SELECT 1 FROM users').fetchone(),'user':{'name':user['name'],'role':user['role']} if user else None})
@@ -149,9 +151,11 @@ class Handler(BaseHTTPRequestHandler):
      if user['role'] not in {'admin','finance'}:return self.send(403,{'error':'Yetki yok'})
      for kind,rid,record in (business.revise if path.endswith('revise-quote') else business.convert)(read_data(c,'admin'),x.get('id'),secrets.token_hex(12)):
       c.execute('INSERT OR REPLACE INTO records VALUES(?,?,?)',(kind,rid,json.dumps(validate(kind,record,c),ensure_ascii=False)))
+    elif path=='/api/invoice-approval':
+     invoice_local.process(c,user,x,validate,read_data)
     elif path=='/api/record':
      kind=x.get('kind')
-     if kind not in SCHEMA or kind=='documents' or not allowed(user['role'],kind,True):return self.send(403,{'error':'Bu kaydı değiştirme yetkiniz yok'})
+     if kind not in SCHEMA or kind in {'documents','invoiceSubmissions'} or not allowed(user['role'],kind,True):return self.send(403,{'error':'Bu kaydı değiştirme yetkiniz yok'})
      rid=x.get('id') or secrets.token_hex(12)
      old=c.execute('SELECT payload FROM records WHERE kind=? AND id=?',(kind,rid)).fetchone();existing=json.loads(old['payload']) if old else {}
      if kind=='approvals' and existing and existing.get('status')!='Bekliyor':raise ValueError('Karar verilmiş onay kaydı kilitli; yeni sürüm için yeni kayıt açın')
@@ -163,6 +167,9 @@ class Handler(BaseHTTPRequestHandler):
      if user['role']=='operations':
       for f in SENSITIVE.get(kind,set()):x['record'][f]=existing.get(f,0 if f=='cost' else '')
      clean=validate(kind,x['record'],c)
+     if kind=='partners':
+      shares=clean['share']+sum(p['share'] for p in read_data(c,'admin')['partners'] if p['id']!=rid and p['company'].casefold()==clean['company'].casefold())
+      if shares>100.001:raise ValueError('Ortaklık payları toplamı %100 üzerinde olamaz')
      warehouse.validate(kind,clean,c,rid)
      c.execute('INSERT OR REPLACE INTO records VALUES(?,?,?)',(kind,rid,json.dumps(clean,ensure_ascii=False)))
     elif path=='/api/upload':

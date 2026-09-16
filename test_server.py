@@ -22,6 +22,13 @@ o=client();assert req(o,'login',{'name':'test-ops','password':'test-only-passwor
 view=req(o,'data')[1];assert 'expenses' not in view['data'];assert 'revenue' not in view['data']['events'][0]
 assert req(o,'record',{'kind':'expenses','record':source['expenses'][0]})[0]==403
 assert req(o,'backup')[0]==403
+invoice=dict(source['expenses'][0],number='LOCAL-APPROVAL',invoiceType='e-Arşiv Fatura')
+assert req(a,'invoice-approval',{'action':'submit','record':invoice})[0]==200
+pending=req(a,'data')[1]['data']['invoiceSubmissions'][0]
+assert pending['status']=='Onay bekliyor'
+assert req(o,'invoice-approval',{'action':'approve','id':pending['id'],'record':invoice})[0]==400
+assert req(a,'invoice-approval',{'action':'approve','id':pending['id'],'record':invoice})[0]==200
+assert req(a,'invoice-approval',{'action':'approve','id':pending['id'],'record':invoice})[0]==400
 assert req(a,'record',{'kind':'payments','record':dict(source['payments'][0],amount=-1)})[0]==400
 assert req(a,'record',{'kind':'payments','record':dict(source['payments'][0],card='')})[0]==400
 assert req(a,'upload',{'target':'expenses:g0','name':'test.pdf','data':base64.b64encode(b'%PDF-1.4 demo').decode()})[0]==200
