@@ -779,5 +779,352 @@
       "Onay zamanı",
       "text"
     ]
+  ],
+  "eventEntrances": [
+    [
+      "event",
+      "Etkinlik",
+      "ref:events"
+    ],
+    [
+      "name",
+      "Giriş / kapı adı",
+      "text"
+    ],
+    [
+      "zone",
+      "Karşılama alanı / salon",
+      "optional"
+    ],
+    [
+      "capacity",
+      "Saatlik hedef kapasite",
+      "integer"
+    ],
+    [
+      "openAt",
+      "Açılış zamanı",
+      "datetime"
+    ],
+    [
+      "closeAt",
+      "Kapanış zamanı",
+      "datetime"
+    ]
+  ],
+  "attendees": [
+    [
+      "event",
+      "Etkinlik",
+      "ref:events"
+    ],
+    [
+      "name",
+      "Ad soyad",
+      "text"
+    ],
+    [
+      "email",
+      "E-posta",
+      "optional"
+    ],
+    [
+      "phone",
+      "Telefon",
+      "optional"
+    ],
+    [
+      "company",
+      "Kurum / firma",
+      "optional"
+    ],
+    [
+      "title",
+      "Unvan",
+      "optional"
+    ],
+    [
+      "badgeType",
+      "Yaka kartı tipi",
+      "enum:Standart,VIP,Konuşmacı,Sponsor,Basın,Ekip"
+    ],
+    [
+      "rsvp",
+      "LCV durumu",
+      "enum:Bekliyor,Katılacak,Belki,Katılmayacak"
+    ],
+    [
+      "meal",
+      "Yemek",
+      "enum:Katılacak,Katılmayacak,Belirsiz"
+    ],
+    [
+      "gala",
+      "Gala",
+      "enum:Katılacak,Katılmayacak,Belirsiz"
+    ],
+    [
+      "cocktail",
+      "Kokteyl",
+      "enum:Katılacak,Katılmayacak,Belirsiz"
+    ],
+    [
+      "entrance",
+      "Atanan giriş",
+      "optref:eventEntrances"
+    ],
+    [
+      "qrToken",
+      "QR kodu",
+      "text"
+    ],
+    [
+      "dietary",
+      "Alerji / beslenme notu",
+      "optional"
+    ],
+    [
+      "accessibility",
+      "Erişilebilirlik / destek notu",
+      "optional"
+    ],
+    [
+      "consent",
+      "İletişim / KVKK kayıt durumu",
+      "enum:Bekliyor,Alındı,Gerekli değil"
+    ]
+  ],
+  "attendeeCheckIns": [
+    [
+      "attendee",
+      "Misafir",
+      "ref:attendees"
+    ],
+    [
+      "entrance",
+      "Giriş / kapı",
+      "ref:eventEntrances"
+    ],
+    [
+      "time",
+      "İşlem zamanı",
+      "datetime"
+    ],
+    [
+      "direction",
+      "Hareket",
+      "enum:Giriş,Çıkış"
+    ],
+    [
+      "badgePrinted",
+      "Yaka kartı basıldı",
+      "enum:Evet,Hayır"
+    ],
+    [
+      "note",
+      "Not",
+      "optional"
+    ]
+  ],
+  "attendeeFlights": [
+    [
+      "attendee",
+      "Yolcu",
+      "ref:attendees"
+    ],
+    [
+      "direction",
+      "Uçuş yönü",
+      "enum:Geliş,Dönüş,Ara uçuş"
+    ],
+    [
+      "originIata",
+      "Kalkış havalimanı IATA",
+      "text"
+    ],
+    [
+      "destinationIata",
+      "Varış havalimanı IATA",
+      "text"
+    ],
+    [
+      "departure",
+      "Kalkış zamanı",
+      "datetime"
+    ],
+    [
+      "airline",
+      "Havayolu",
+      "optional"
+    ],
+    [
+      "flightNo",
+      "Uçuş numarası",
+      "optional"
+    ],
+    [
+      "pnr",
+      "PNR / rezervasyon kodu",
+      "optional"
+    ],
+    [
+      "cabin",
+      "Kabin",
+      "enum:Ekonomi,Premium ekonomi,Business,First"
+    ],
+    [
+      "baggage",
+      "Bagaj bilgisi",
+      "optional"
+    ],
+    [
+      "status",
+      "Bilet durumu",
+      "enum:Araştırılıyor,Opsiyonlandı,Satın alındı,İptal"
+    ],
+    [
+      "lastPrice",
+      "Son görülen fiyat",
+      "money"
+    ],
+    [
+      "currency",
+      "Para birimi",
+      "enum:TRY,EUR,USD"
+    ],
+    [
+      "priceCheckedAt",
+      "Fiyat kontrol zamanı",
+      "optional"
+    ],
+    [
+      "bookingLink",
+      "Satın alma / arama bağlantısı",
+      "optional"
+    ]
+  ],
+  "transportServices": [
+    [
+      "event",
+      "Bağlı etkinlik (varsa)",
+      "optref:events"
+    ],
+    [
+      "customer",
+      "Müşteri / kurum",
+      "text"
+    ],
+    [
+      "title",
+      "Ulaşım hizmeti",
+      "text"
+    ],
+    [
+      "serviceMode",
+      "Satış biçimi",
+      "enum:Etkinlik hizmeti,Bağımsız satış"
+    ],
+    [
+      "type",
+      "Hizmet türü",
+      "enum:Havalimanı transferi,Şoförlü araç,VIP karşılama,Servis,Minibüs / otobüs,Diğer"
+    ],
+    [
+      "pickup",
+      "Alış noktası",
+      "text"
+    ],
+    [
+      "dropoff",
+      "Bırakış noktası",
+      "text"
+    ],
+    [
+      "start",
+      "Başlangıç",
+      "datetime"
+    ],
+    [
+      "end",
+      "Bitiş",
+      "datetime"
+    ],
+    [
+      "vehicleClass",
+      "Araç seçeneği",
+      "enum:Ekonomik sedan,VIP sedan,SUV,Minivan,Minibüs,Otobüs,Engelli erişimli araç,Diğer"
+    ],
+    [
+      "vehicleCount",
+      "Araç adedi",
+      "integer"
+    ],
+    [
+      "seatCapacity",
+      "Araç başına koltuk",
+      "integer"
+    ],
+    [
+      "supplier",
+      "Tedarikçi / sürücü",
+      "optional"
+    ],
+    [
+      "contact",
+      "İletişim / plaka",
+      "optional"
+    ],
+    [
+      "price",
+      "Net satış bedeli TL",
+      "money"
+    ],
+    [
+      "status",
+      "Durum",
+      "enum:Talep,Opsiyonlandı,Onaylandı,Tamamlandı,İptal"
+    ],
+    [
+      "note",
+      "Operasyon notu",
+      "optional"
+    ]
+  ],
+  "passengerTransfers": [
+    [
+      "attendee",
+      "Yolcu",
+      "ref:attendees"
+    ],
+    [
+      "service",
+      "Ulaşım hizmeti / araç",
+      "ref:transportServices"
+    ],
+    [
+      "pickupNote",
+      "Kişiye özel alış notu",
+      "optional"
+    ],
+    [
+      "seatNo",
+      "Koltuk / araç sıra no",
+      "optional"
+    ],
+    [
+      "luggage",
+      "Bagaj",
+      "optional"
+    ],
+    [
+      "assistance",
+      "Karşılama / destek",
+      "optional"
+    ],
+    [
+      "status",
+      "Yolcu durumu",
+      "enum:Planlandı,Teyit edildi,Araca alındı,Tamamlandı,İptal"
+    ]
   ]
 }

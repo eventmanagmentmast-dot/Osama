@@ -30,7 +30,7 @@ SCHEMA.update(business.SCHEMA)
 SCHEMA['products'].extend([["brand","Marka","optional"],["model","Model","optional"],["dimensions","Ölçüler / ağırlık","optional"],["power","Elektrik / güç bilgisi","optional"],["accessories","Birlikte verilen parçalar","optional"],["technicalNote","Teknik özellikler / kullanım notu","optional"]])
 SCHEMA['resources'].extend([["type","Kaynak türü · ekipman / ekip / araç","optional"],["location","Bulunduğu yer","optional"],["owner","Sorumlu kişi","optional"],["details","Kaynak açıklaması","optional"]])
 FINANCE={'expenses','payments','receipts','cards','statements','cardPayments','staff','advances','extras','rentals','rentalReceipts','products','warehouses'}
-SENSITIVE={'events':{'revenue','budget','vat'},'externalRentals':{'expense'},'maintenance':{'cost'},'rentals':{'dailyRate','discount','vat','billing','incomeMode','billDays'}}
+SENSITIVE={'events':{'revenue','budget','vat'},'externalRentals':{'expense'},'maintenance':{'cost'},'rentals':{'dailyRate','discount','vat','billing','incomeMode','billDays'},'transportServices':{'price'}}
 class Connection(sqlite3.Connection):
  def __exit__(self,*args):
   try:return super().__exit__(*args)
@@ -80,6 +80,27 @@ def validate(kind,x,c):
  if kind=='operations' and clean['status']=='Tamamlandı' and not clean['evidence']:raise ValueError('Tamamlanan kontrol için teyit notu veya belge referansı girin')
  business.validate(kind,clean)
  return clean
+def validate_lcv(kind,record,c,rid):
+ if kind not in {'eventEntrances','attendees','attendeeCheckIns','transportServices','passengerTransfers'}:return
+ data=read_data(c,'admin');data[kind]=[r for r in data[kind] if r['id']!=rid]+[{**record,'id':rid}]
+ by=lambda k,i:next((r for r in data[k] if r['id']==i),None)
+ tokens=[r['qrToken'].casefold() for r in data['attendees']]
+ if len(tokens)!=len(set(tokens)):raise ValueError('Misafir QR kodu benzersiz olmalı')
+ for gate in data['eventEntrances']:
+  if gate['closeAt']<=gate['openAt']:raise ValueError('Giriş kapanış zamanı açılıştan sonra olmalı')
+ for guest in data['attendees']:
+  gate=by('eventEntrances',guest['entrance']) if guest['entrance'] else None
+  if gate and gate['event']!=guest['event']:raise ValueError('Misafirin giriş noktası aynı etkinliğe ait olmalı')
+ for move in data['attendeeCheckIns']:
+  guest,gate=by('attendees',move['attendee']),by('eventEntrances',move['entrance'])
+  if not guest or not gate or guest['event']!=gate['event'] or guest['entrance'] and guest['entrance']!=gate['id']:raise ValueError('QR giriş kaydı misafir ve atanan girişle uyuşmuyor')
+ for service in data['transportServices']:
+  if service['end']<=service['start']:raise ValueError('Ulaşım hizmeti bitişi başlangıçtan sonra olmalı')
+  if service['serviceMode']=='Etkinlik hizmeti' and not service['event']:raise ValueError('Etkinlik hizmeti için bağlı etkinliği seçin')
+ for assignment in data['passengerTransfers']:
+  guest,service=by('attendees',assignment['attendee']),by('transportServices',assignment['service'])
+  if guest and service and service['event'] and service['event']!=guest['event']:raise ValueError('Yolcu ve ulaşım hizmeti aynı etkinliğe ait olmalı')
+  if service and len([x for x in data['passengerTransfers'] if x['service']==service['id'] and x['status']!='İptal'])>service['vehicleCount']*service['seatCapacity']:raise ValueError('Araç koltuk kapasitesi aşıldı')
 class Handler(BaseHTTPRequestHandler):
  def log_message(self,*args):pass
  def send(self,status,data,ctype='application/json',headers={}):
@@ -96,7 +117,7 @@ class Handler(BaseHTTPRequestHandler):
   if path in {'/','/app.js','/style.css','/sample.json','/warehouse.js'}:
    file={'/':'index.html','/app.js':'app.js','/style.css':'style.css','/warehouse.js':'warehouse.js','/sample.json':'sample.json'}[path];return self.send(200,(ROOT/file).read_bytes(),{'/':'text/html; charset=utf-8','/app.js':'text/javascript; charset=utf-8','/style.css':'text/css; charset=utf-8','/warehouse.js':'text/javascript; charset=utf-8','/sample.json':'application/octet-stream'}[path])
   if path in {'/experience.css','/brand-mark.png','/event-scene.png'}:return self.send(200,(ROOT/path[1:]).read_bytes(),'image/png' if path.endswith('.png') else 'text/css; charset=utf-8')
-  if path in {'/business.js','/qrcode.js','/experience.js','/finance-core.js','/finance-ui.js','/approval-ui.js','/reconciliation-ui.js','/partners-ui.js','/equipment-ui.js','/catalogue-ui.js','/pdf-reader.mjs','/pdf-engine.mjs','/pdf-worker.mjs'}:return self.send(200,(ROOT/path[1:]).read_bytes(),'text/javascript; charset=utf-8')
+  if path in {'/business.js','/qrcode.js','/experience.js','/finance-core.js','/finance-ui.js','/approval-ui.js','/reconciliation-ui.js','/partners-ui.js','/equipment-ui.js','/catalogue-ui.js','/lcv-ui.js','/pdf-reader.mjs','/pdf-engine.mjs','/pdf-worker.mjs'}:return self.send(200,(ROOT/path[1:]).read_bytes(),'text/javascript; charset=utf-8')
   with connect() as c:
    user=self.user(c)
    if path=='/api/session':return self.send(200,{'setup':not c.execute('SELECT 1 FROM users').fetchone(),'user':{'name':user['name'],'role':user['role']} if user else None})
@@ -156,6 +177,9 @@ class Handler(BaseHTTPRequestHandler):
      if user['role']!='admin':return self.send(403,{'error':'Yönetici gerekli'})
      if x.get('role') not in {'admin','finance','operations'} or len(x.get('password',''))<10 or not x.get('name','').strip():raise ValueError('Ad, rol ve en az 10 karakterli parola gerekli')
      salt=secrets.token_hex(16);c.execute('INSERT INTO users VALUES(?,?,?,?,?)',(secrets.token_hex(12),x['name'].strip(),salt,pw(x['password'],salt),x['role']))
+    elif path=='/api/flight-search':
+     if user['role'] not in {'admin','finance','operations'}:return self.send(403,{'error':'Yetki yok'})
+     return self.send(200,{'available':False,'options':[]})
     elif path in {'/api/convert-quote','/api/revise-quote'}:
      if user['role'] not in {'admin','finance'}:return self.send(403,{'error':'Yetki yok'})
      for kind,rid,record in (business.revise if path.endswith('revise-quote') else business.convert)(read_data(c,'admin'),x.get('id'),secrets.token_hex(12)):
@@ -182,6 +206,7 @@ class Handler(BaseHTTPRequestHandler):
       shares=clean['share']+sum(p['share'] for p in read_data(c,'admin')['partners'] if p['id']!=rid and p['company'].casefold()==clean['company'].casefold())
       if shares>100.001:raise ValueError('Ortaklık payları toplamı %100 üzerinde olamaz')
      warehouse.validate(kind,clean,c,rid)
+     validate_lcv(kind,clean,c,rid)
      c.execute('INSERT OR REPLACE INTO records VALUES(?,?,?)',(kind,rid,json.dumps(clean,ensure_ascii=False)))
     elif path=='/api/upload':
      if not allowed(user['role'],'documents',True) and user['role']!='operations':return self.send(403,{'error':'Yetki yok'})

@@ -24,6 +24,23 @@ etkinliğe dönüştürülmez. Mevcut işe ilaveler Ek işler bölümünden izle
 - Yönetici son 200 işlemi görebilir. JSON yedekleri yeni kayıt türlerini kapsar;
   önceki sürüm yedeklerinde eksik yeni bölümler boş kabul edilir.
 
+### LCV, giriş ve ulaşım
+
+LCV ekranı kişi bazında yaka kartı tipi, yemek, gala ve kokteyl katılımını,
+atanan giriş kapısını, alerji ve erişilebilirlik notlarını tutar. Her misafire
+benzersiz QR kodu üretilir; giriş/çıkış hareketleri kapı ve saatle kaydedilir.
+Yaka kartı tarayıcıdan 4 × 3 inç ölçüsünde yazdırılabilir. Kamera ile okuma
+desteklenmeyen tarayıcılarda kod elle veya klavye gibi çalışan okuyucuyla girilir.
+
+Ulaşım hizmetleri bir etkinliğe bağlı veya bağımsız satış olarak açılabilir.
+Araç sınıfı, araç ve koltuk sayısı, rota, tedarikçi, plaka/iletişim ve kişi bazlı
+araç ataması kaydedilir; kapasite aşımı engellenir. Uçuşlar kişi bazında gidiş,
+dönüş, IATA rotası, PNR, bagaj, kabin, durum ve son görülen fiyatla izlenir.
+Skyscanner canlı fiyat sonuçlarını panel içinde göstermek için resmî partner API
+erişimi ve sunucuda `SKYSCANNER_API_KEY` gerekir. Anahtar yokken arama formu seçilen
+rota, tarih ve kabinle Skyscanner canlı arama sayfasını açar; anahtar tarayıcıya
+ve GitHub'a yazılmaz.
+
 ### Ortak yayında müşteri ve saha erişimi
 
 Bulut sürümünde `customer` yalnız e-postasına atanmış onayları ve onların

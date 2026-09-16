@@ -2,8 +2,8 @@ import json
 from datetime import date,timedelta
 from pathlib import Path
 SCHEMA=json.loads((Path(__file__).parent/'business-schema.json').read_text(encoding='utf-8'))
-FINANCE={'catalogueRequests','catalogueEntries','invoiceSubmissions','taxScenarios','customers','opportunities','quotes','quoteLines','externalRentals','contractors','maintenance','investments','approvals'}
-OPS={'catalogueRequests','catalogueEntries','fieldReports','externalRentals','maintenance'}
+FINANCE={'catalogueRequests','catalogueEntries','invoiceSubmissions','taxScenarios','customers','opportunities','quotes','quoteLines','externalRentals','contractors','maintenance','investments','approvals','transportServices'}
+OPS={'catalogueRequests','catalogueEntries','fieldReports','externalRentals','maintenance','eventEntrances','attendees','attendeeCheckIns','attendeeFlights','transportServices','passengerTransfers'}
 
 def validate(kind,r):
  if kind=='partners' and r['share']>100:raise ValueError('Ortaklık payı %100 üzerinde olamaz')
@@ -17,6 +17,8 @@ def validate(kind,r):
   if r['category']=='Kiralama' and (not r['product'] or not r['warehouse']):raise ValueError('Kiralama için ürün ve depo gerekli')
  if kind=='externalRentals' and r['end']<=r['start']:raise ValueError('İade teslimden sonra olmalı')
  if kind=='maintenance' and r['status']=='Tamamlandı' and not r['reference']:raise ValueError('Servis belgesi / not gerekli')
+ if kind=='attendees' and not r['qrToken'].startswith('OSAMA-LCV-'):raise ValueError('Misafir QR kodu geçersiz')
+ if kind=='attendeeFlights' and (len(r['originIata'])!=3 or len(r['destinationIata'])!=3):raise ValueError('Havalimanı için üç harfli IATA kodu girin')
 
 def convert(data,qid,event_id):
  q=next((r for r in data['quotes'] if r['id']==qid),None)
