@@ -1,5 +1,6 @@
 import assets from './assets.generated.json' with {type:'json'};
 import {schema,sensitive,allowed,filtered,validate,validateWarehouse} from './logic.mjs';
+import {invoiceTransition} from './invoice-approval.mjs';
 import {portalData} from './portal.mjs';
 import {convertQuote,reviseQuote} from './business.mjs';
 import businessSchema from '../business-schema.json' with {type:'json'};
@@ -33,11 +34,11 @@ export async function handle(request,env){
  if(!role||role==='disabled')throw error('Bu çalışma alanında yetkiniz yok. Yöneticinizden erişim isteyin.',403);
  if(request.method==='GET'){
   if(['/brand-mark.png','/event-scene.png'].includes(path))return new Response(Uint8Array.from(atob(assets[path]),c=>c.charCodeAt(0)),{headers:{'Content-Type':'image/png','Cache-Control':'public, max-age=3600'}});
-  if(Object.hasOwn(assets,path))return new Response(assets[path],{headers:{'Content-Type':path.endsWith('.js')?'text/javascript; charset=utf-8':path.endsWith('.css')?'text/css; charset=utf-8':path.endsWith('.json')?'application/json; charset=utf-8':'text/html; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'same-origin'}});
+  if(Object.hasOwn(assets,path))return new Response(assets[path],{headers:{'Content-Type':(path.endsWith('.js')||path.endsWith('.mjs'))?'text/javascript; charset=utf-8':path.endsWith('.css')?'text/css; charset=utf-8':path.endsWith('.json')?'application/json; charset=utf-8':'text/html; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'same-origin'}});
   if(path==='/api/session')return json({setup:false,cloud:true,user:{name:email,role}});
   if(path==='/api/data'&&['customer','field'].includes(role)){const data=portalData(snap.data,email,role);return json({data,revision:snap.revision,schema:Object.fromEntries(Object.keys(data).map(k=>[k,schema[k].filter(([f])=>!sensitive[k]?.includes(f))])),write:[],users:[]});}
   if(['customer','field'].includes(role)){
-   const own=portalData(snap.data,email,role),targets=new Set((role==='customer'?own.approvals:own.fieldReports).map(r=>(role==='customer'?'approvals:':'fieldReports:')+r.id)),docs=snap.data.documents.filter(d=>targets.has(d.target));
+   const own=portalData(snap.data,email,role),targets=new Set((role==='customer'?own.approvals:own.fieldReports).map(r=>(role==='customer'?'approvals:':'fieldReports:')+r.id).concat(role==='field'?own.invoiceSubmissions.flatMap(r=>['invoiceSubmissions:'+r.id,...(r.expense?['expenses:'+r.expense]:[])]):[])),docs=snap.data.documents.filter(d=>targets.has(d.target));
    if(path==='/api/portal-documents')return json({rows:docs.map(({id,name,target})=>({id,name,target}))});
    if(path.startsWith('/api/file/')){const d=docs.find(d=>d.id===path.split('/').pop());if(!d)throw error('Yetki yok',403);const file=await env.BUCKET.get(d.storageKey);if(!file)throw error('Dosya bulunamadı',404);return new Response(file.body,{headers:{'Content-Type':'application/octet-stream','Content-Disposition':"attachment; filename*=UTF-8''"+encodeURIComponent(d.name),'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});}
    throw error('Yetki yok',403);
@@ -58,7 +59,20 @@ export async function handle(request,env){
  if(!x||typeof x!=='object'||Array.isArray(x))throw error('Geçersiz istek');
  if(x.expectedRevision!==snap.revision)throw error('Kayıtlar değişti. Paneli yenileyip tekrar deneyin.',409);
  const ops=[];
- if(path==='/api/field-report'){
+ if(path==='/api/invoice-approval'){
+  const change=invoiceTransition(snap.data,email,role,x,id(),new Date().toISOString());
+  if(x.file){
+   if(change.kind!=='submit'||!x.file.name||!/\.(pdf|png|jpe?g|webp)$/i.test(x.file.name)||x.file.name.length>500)throw error('Belge geçersiz');
+   const fid=id(),storageKey='documents/'+fid,bytes=bytes64(x.file.data);await env.BUCKET.put(storageKey,bytes);
+   ops.push(putRecord('documents',fid,{name:x.file.name.split(/[\\/]/).pop(),target:'invoiceSubmissions:'+change.id,storageKey}));
+  }
+  if(change.kind==='approve'){
+   ops.push(putRecord('expenses',change.expenseId,change.record));
+   for(const d of snap.data.documents.filter(d=>d.target==='invoiceSubmissions:'+change.id))ops.push(putRecord('documents',d.id,{...d,target:'expenses:'+change.expenseId}));
+  }
+  ops.push(putRecord('invoiceSubmissions',change.id,change.submission));
+ }else if(path==='/api/field-report'){
+
   if(role!=='field')throw error('Yetki yok',403);const task=portalData(snap.data,email,role).tasks.find(r=>r.id===x.task);if(!task)throw error('Görev bulunamadı',404);
   ops.push(putRecord('fieldReports',id(),validate('fieldReports',{event:task.event,task:task.id,title:x.title,owner:email,date:new Date().toISOString().slice(0,10),status:'Açık',note:x.note},snap.data)));
  }else if(path==='/api/portal-action'){
@@ -77,7 +91,7 @@ export async function handle(request,env){
   if(!['admin','finance'].includes(role))throw error('Yetki yok',403);
   for(const [k,rid,r] of (path.endsWith("revise-quote")?reviseQuote:convertQuote)(snap.data,x.id,id())){const clean=validate(k,r,snap.data);snap.data[k]=[...snap.data[k].filter(v=>v.id!==rid),{...clean,id:rid}];ops.push(putRecord(k,rid,clean));}
  }else if(path==='/api/record'){
-  const k=x.kind;if(!Object.hasOwn(schema,k)||k==='documents'||!allowed(role,k,true))throw error('Bu kaydı değiştirme yetkiniz yok',403);
+  const k=x.kind;if(!Object.hasOwn(schema,k)||['documents','invoiceSubmissions'].includes(k)||!allowed(role,k,true))throw error('Bu kaydı değiştirme yetkiniz yok',403);
   const rid=x.id||id();if(typeof rid!=='string'||!/^[\w-]{1,100}$/.test(rid))throw error('Kayıt kimliği geçersiz');
   const existing=snap.data[k].find(r=>r.id===rid);
   if(k==='quotes'&&snap.data.approvals.some(a=>a.quote===rid)||k==='quoteLines'&&snap.data.approvals.some(a=>[existing?.quote,x.record?.quote].includes(a.quote)))throw error('Onaya sunulan teklif kilitli. Yeni revizyon oluşturun.');

@@ -1,5 +1,9 @@
 export function validateBusiness(k,r){
  const fail=m=>{throw Object.assign(Error(m),{status:400})};
+ if(k==='partners'&&r.share>100)fail('Ortaklık payı %100 üzerinde olamaz');
+ if(k==='partnerProfitPools'&&!/^(20\d{2}|2100)$/.test(r.year))fail('Geçerli yıl girin');
+ if(['expenses','invoiceSubmissions'].includes(k)&&r.invoiceType&&!['Belirlenmedi','e-Fatura','e-Arşiv Fatura','Diğer / kâğıt fatura'].includes(r.invoiceType))fail('Fatura türü geçersiz');
+ if(k==='taxScenarios'&&(r.rate>100||r.withholdingRate>100))fail('Oran en fazla %100 olabilir');
  if(k==='quotes'&&r.status==='Onaylandı'&&!r.approval)fail('Onay referansı gerekli');
  if(k==='quoteLines'&&(r.vatRate>100||r.category==='Kiralama'&&(!r.product||!r.warehouse)))fail('KDV oranı veya kiralama ürün/depo bilgisi geçersiz');
  if(k==='externalRentals'&&r.end<=r.start)fail('İade teslimden sonra olmalı');

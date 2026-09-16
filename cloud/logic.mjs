@@ -1,7 +1,7 @@
 import schema from './schema.json' with {type:'json'};
 import {validateBusiness} from './business.mjs';
 export {schema};
-const finance=new Set(['customers','opportunities','quotes','quoteLines','externalRentals','contractors','maintenance','investments','approvals','expenses','payments','receipts','cards','statements','cardPayments','staff','advances','extras','rentals','rentalReceipts','products','warehouses','events','documents','dispatches','returns','stockMoves']);
+const finance=new Set(['invoiceSubmissions','taxScenarios','customers','opportunities','quotes','quoteLines','externalRentals','contractors','maintenance','investments','approvals','expenses','payments','receipts','cards','statements','cardPayments','staff','advances','extras','rentals','rentalReceipts','products','warehouses','events','documents','dispatches','returns','stockMoves']);
 const ops=new Set(['fieldReports','externalRentals','maintenance','events','resources','allocations','tasks','operations','warehouses','products','stockMoves','rentals','dispatches','returns']);
 export const sensitive={events:['revenue','budget','vat'],externalRentals:['expense'],maintenance:['cost'],rentals:['dailyRate','discount','vat','billing','incomeMode','billDays']};
 export const allowed=(role,kind,write=false)=>role==='admin'||role==='finance'&&finance.has(kind)&&(!write||!['dispatches','returns','stockMoves'].includes(kind))||role==='operations'&&ops.has(kind)&&(!write||!['events','rentals'].includes(kind));
@@ -23,6 +23,8 @@ export function validate(kind,x,data){
  return clean;
 }
 export function validateWarehouse(data){
+ const partnerShares=new Map();for(const p of data.partners||[]){const key=p.company.trim().toLocaleLowerCase('tr'),share=(partnerShares.get(key)||0)+p.share;partnerShares.set(key,share);if(share>100.001)fail('Bir şirkette ortaklık payları toplamı %100 üzerinde olamaz');}
+
  const rows=k=>data[k]||[],total=(rs,f)=>rs.reduce((s,x)=>s+f(x),0),products=Object.fromEntries(rows('products').map(p=>[p.id,p]));
  const codes=rows('products').map(p=>p.code.toLocaleLowerCase('tr-TR'));if(new Set(codes).size!==codes.length)fail('Ürün kodu benzersiz olmalı');
  for(const p of rows('products'))if(p.tracking==='Tekil varlık'&&!p.serial)fail('Tekil varlık için seri numarası gerekli');

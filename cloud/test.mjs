@@ -4,7 +4,49 @@ import {DatabaseSync} from 'node:sqlite';
 import {readFileSync,readdirSync} from 'node:fs';
 import worker from './worker.mjs';
 import {validateWarehouse} from './logic.mjs';
+import {invoiceTransition} from './invoice-approval.mjs';
 const sample=JSON.parse(readFileSync('sample.json','utf8')).data;
+test('invoice review enforces ownership, reviewer roles, document isolation and exactly-once posting',async()=>{
+ const env=environment();let revision=0;
+ const save=async(path,body,email='owner@example.test')=>{const r=await req(env,path,{...body,expectedRevision:revision},email);assert.equal(r.status,200,JSON.stringify(r.data));revision=r.data.revision;return r;};
+ await save('restore',{version:1,data:sample,files:{}});
+ for(const [name,role] of [['crew@example.test','field'],['other@example.test','field'],['book@example.test','finance'],['ops@example.test','operations'],['client@example.test','customer']])await save('users',{name,role});
+ await save('record',{kind:'tasks',id:'assigned',record:{...sample.tasks[0],owner:'crew@example.test',event:'e1'}});
+ const record={...sample.expenses[0],number:'TEST-APPROVAL',net:1000,vat:200,taxRates:'KDV: %20'};
+ await save('record',{kind:'partners',id:'partner-test',record:{company:'Synthetic Company',name:'Synthetic Partner',share:60,note:''}});
+ assert.equal((await req(env,'record',{kind:'partners',record:{company:'Synthetic Company',name:'Second',share:50,note:''},expectedRevision:revision})).status,400);
+ for(const email of ['book@example.test','crew@example.test','ops@example.test','client@example.test']){
+  const view=(await req(env,'data',null,email)).data;for(const kind of ['partners','partnerMovements','partnerProfitPools']){
+   assert.equal(view.data[kind],undefined);assert.equal(view.schema[kind],undefined);
+   assert.equal((await req(env,'record',{kind,record:{},expectedRevision:revision},email)).status,403);
+  }
+ }
+ const before=(await req(env,'data')).data.data.expenses.length;
+ assert.equal((await req(env,'invoice-approval',{action:'submit',record:{...record,event:'e2'},expectedRevision:revision},'crew@example.test')).status,403);
+ await save('invoice-approval',{action:'submit',record,file:{name:'synthetic.pdf',data:btoa('%PDF-1.4 synthetic')}},'crew@example.test');
+ const pending=(await req(env,'data')).data.data.invoiceSubmissions[0],doc=(await req(env,'portal-documents',null,'crew@example.test')).data.rows[0];
+ assert.equal((await req(env,'data')).data.data.expenses.length,before);
+ assert.equal((await req(env,'data',null,'other@example.test')).data.data.invoiceSubmissions.length,0);
+ assert.equal((await req(env,'data',null,'ops@example.test')).data.data.invoiceSubmissions,undefined);
+ assert.equal((await req(env,'file/'+doc.id,null,'crew@example.test')).status,200);
+ assert.equal((await req(env,'file/'+doc.id,null,'other@example.test')).status,403);
+ assert.equal((await req(env,'file/'+doc.id,null,'client@example.test')).status,403);
+ assert.equal((await req(env,'record',{kind:'invoiceSubmissions',id:pending.id,record:{...pending,status:'Onaylandı'},expectedRevision:revision})).status,403);
+ assert.equal((await req(env,'invoice-approval',{action:'approve',id:pending.id,record,expectedRevision:revision},'crew@example.test')).status,403);
+ assert.equal((await req(env,'invoice-approval',{action:'return',id:pending.id,note:'',expectedRevision:revision},'book@example.test')).status,400);
+ await save('invoice-approval',{action:'return',id:pending.id,note:'Numarayı teyit edin'},'book@example.test');
+ assert.equal((await req(env,'invoice-approval',{action:'submit',id:pending.id,record,expectedRevision:revision},'other@example.test')).status,403);
+ await save('invoice-approval',{action:'submit',id:pending.id,record},'crew@example.test');
+ await save('invoice-approval',{action:'approve',id:pending.id,record},'book@example.test');
+ const final=(await req(env,'data')).data.data;assert.equal(final.expenses.length,before+1);assert.equal(final.invoiceSubmissions[0].reviewer,'book@example.test');assert.equal(final.documents[0].target,'expenses:'+final.invoiceSubmissions[0].expense);
+ assert.equal((await req(env,'file/'+doc.id,null,'crew@example.test')).status,200);assert.equal((await req(env,'file/'+doc.id,null,'other@example.test')).status,403);
+ assert.equal((await req(env,'invoice-approval',{action:'approve',id:pending.id,record,expectedRevision:revision},'book@example.test')).status,409);
+ assert.equal((await req(env,'data')).data.data.expenses.length,before+1);
+ const tax={company:'Test',type:'Şahıs işletmesi',year:'2026',revenue:1000,cost:200,additions:0,deductions:0,rate:0,credits:0,withholdingBase:100,withholdingRate:20,note:''};
+ await save('record',{kind:'taxScenarios',record:tax},'book@example.test');assert.equal((await req(env,'data',null,'crew@example.test')).data.data.taxScenarios,undefined);
+ assert.equal((await req(env,'record',{kind:'taxScenarios',record:{...tax,withholdingRate:101},expectedRevision:revision},'book@example.test')).status,400);
+ env.db.close();
+});
 function environment(){const db=new DatabaseSync(':memory:');for(const f of readdirSync('drizzle').filter(f=>f.endsWith('.sql')))db.exec(readFileSync('drizzle/'+f,'utf8'));const objects=new Map();return {OWNER_EMAIL:'owner@example.test',DB:{prepare(sql){return {sql,values:[],bind(...values){return {...this,values}}}},async batch(statements){db.exec('BEGIN');try{const results=statements.map(s=>{const p=db.prepare(s.sql);if(/^SELECT/.test(s.sql))return {results:p.all(...s.values),meta:{changes:0}};const r=p.run(...s.values);return {results:[],meta:{changes:Number(r.changes)}};});db.exec('COMMIT');return results;}catch(e){db.exec('ROLLBACK');throw e}}},BUCKET:{async put(k,b){objects.set(k,typeof b==='string'?new TextEncoder().encode(b):b)},async get(k){const b=objects.get(k);return b?{body:b,arrayBuffer:async()=>b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength)}:null}},db,objects};}
 async function req(env,path,body,email='owner@example.test',headers={}){const r=await worker.fetch(new Request('https://example.test/api/'+path,{method:body?'POST':'GET',headers:{'oai-authenticated-user-id':'test-id','oai-authenticated-user-email':email,...(body?{'Origin':'https://example.test','Content-Type':'application/json'}:{}),...headers},body:body?JSON.stringify(body):undefined}),env);return {status:r.status,data:r.headers.get('Content-Type')?.includes('json')?await r.json():new Uint8Array(await r.arrayBuffer())};}
 test('shared storage, authentication, role boundaries, conflicts, stock checks and backup restore',async()=>{
