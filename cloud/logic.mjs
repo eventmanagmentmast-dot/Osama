@@ -1,8 +1,8 @@
 import schema from './schema.json' with {type:'json'};
 import {validateBusiness} from './business.mjs';
 export {schema};
-const finance=new Set(['invoiceSubmissions','taxScenarios','customers','opportunities','quotes','quoteLines','externalRentals','contractors','maintenance','investments','approvals','expenses','payments','receipts','cards','statements','cardPayments','staff','advances','extras','rentals','rentalReceipts','products','warehouses','events','documents','dispatches','returns','stockMoves']);
-const ops=new Set(['fieldReports','externalRentals','maintenance','events','resources','allocations','tasks','operations','warehouses','products','stockMoves','rentals','dispatches','returns']);
+const finance=new Set(['catalogueRequests','catalogueEntries','invoiceSubmissions','taxScenarios','customers','opportunities','quotes','quoteLines','externalRentals','contractors','maintenance','investments','approvals','expenses','payments','receipts','cards','statements','cardPayments','staff','advances','extras','rentals','rentalReceipts','products','warehouses','events','documents','dispatches','returns','stockMoves']);
+const ops=new Set(['catalogueRequests','catalogueEntries','fieldReports','externalRentals','maintenance','events','resources','allocations','tasks','operations','warehouses','products','stockMoves','rentals','dispatches','returns']);
 export const sensitive={events:['revenue','budget','vat'],externalRentals:['expense'],maintenance:['cost'],rentals:['dailyRate','discount','vat','billing','incomeMode','billDays']};
 export const allowed=(role,kind,write=false)=>role==='admin'||role==='finance'&&finance.has(kind)&&(!write||!['dispatches','returns','stockMoves'].includes(kind))||role==='operations'&&ops.has(kind)&&(!write||!['events','rentals'].includes(kind));
 export function filtered(data,role){return Object.fromEntries(Object.entries(data).filter(([k])=>allowed(role,k)).map(([k,rs])=>[k,rs.map(r=>Object.fromEntries(Object.entries(r).filter(([f])=>role!=='operations'||!sensitive[k]?.includes(f))))]));}

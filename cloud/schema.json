@@ -309,6 +309,26 @@
       "capacity",
       "Aynı anda kullanılabilir adet",
       "integer"
+    ],
+    [
+      "type",
+      "Kaynak türü · ekipman / ekip / araç",
+      "optional"
+    ],
+    [
+      "location",
+      "Bulunduğu yer",
+      "optional"
+    ],
+    [
+      "owner",
+      "Sorumlu kişi",
+      "optional"
+    ],
+    [
+      "details",
+      "Kaynak açıklaması",
+      "optional"
     ]
   ],
   "allocations": [
@@ -491,6 +511,36 @@
       "minimum",
       "Uyarı eşiği",
       "nonnegative"
+    ],
+    [
+      "brand",
+      "Marka",
+      "optional"
+    ],
+    [
+      "model",
+      "Model",
+      "optional"
+    ],
+    [
+      "dimensions",
+      "Ölçüler / ağırlık",
+      "optional"
+    ],
+    [
+      "power",
+      "Elektrik / güç bilgisi",
+      "optional"
+    ],
+    [
+      "accessories",
+      "Birlikte verilen parçalar",
+      "optional"
+    ],
+    [
+      "technicalNote",
+      "Teknik özellikler / kullanım notu",
+      "optional"
     ]
   ],
   "stockMoves": [
@@ -1367,6 +1417,115 @@
     [
       "note",
       "Karar / hesap dayanağı",
+      "text"
+    ]
+  ],
+  "catalogueRequests": [
+    [
+      "product",
+      "Ürün",
+      "ref:products"
+    ],
+    [
+      "change",
+      "İşlem",
+      "enum:Ekle / güncelle,Kaldır"
+    ],
+    [
+      "status",
+      "Durum",
+      "enum:Onay bekliyor,Onaylandı,Reddedildi"
+    ],
+    [
+      "owner",
+      "Talep eden",
+      "text"
+    ],
+    [
+      "at",
+      "Talep zamanı",
+      "text"
+    ],
+    [
+      "reviewer",
+      "Onaylayan",
+      "optional"
+    ],
+    [
+      "reviewedAt",
+      "Karar zamanı",
+      "optional"
+    ],
+    [
+      "note",
+      "Karar notu",
+      "optional"
+    ]
+  ],
+  "catalogueEntries": [
+    [
+      "product",
+      "Ürün",
+      "ref:products"
+    ],
+    [
+      "name",
+      "Ürün adı",
+      "text"
+    ],
+    [
+      "code",
+      "Ürün kodu",
+      "text"
+    ],
+    [
+      "brand",
+      "Marka",
+      "optional"
+    ],
+    [
+      "model",
+      "Model",
+      "optional"
+    ],
+    [
+      "category",
+      "Kategori",
+      "text"
+    ],
+    [
+      "description",
+      "Açıklama",
+      "optional"
+    ],
+    [
+      "dimensions",
+      "Ölçüler",
+      "optional"
+    ],
+    [
+      "accessories",
+      "Birlikte verilen parçalar",
+      "optional"
+    ],
+    [
+      "photoIds",
+      "Onaylı fotoğraflar",
+      "optional"
+    ],
+    [
+      "status",
+      "Durum",
+      "enum:Yayında,Kaldırıldı"
+    ],
+    [
+      "approvedBy",
+      "Onaylayan",
+      "text"
+    ],
+    [
+      "approvedAt",
+      "Onay zamanı",
       "text"
     ]
   ]

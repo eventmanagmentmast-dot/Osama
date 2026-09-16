@@ -45,6 +45,24 @@ test('invoice review enforces ownership, reviewer roles, document isolation and 
  const tax={company:'Test',type:'Şahıs işletmesi',year:'2026',revenue:1000,cost:200,additions:0,deductions:0,rate:0,credits:0,withholdingBase:100,withholdingRate:20,note:''};
  await save('record',{kind:'taxScenarios',record:tax},'book@example.test');assert.equal((await req(env,'data',null,'crew@example.test')).data.data.taxScenarios,undefined);
  assert.equal((await req(env,'record',{kind:'taxScenarios',record:{...tax,withholdingRate:101},expectedRevision:revision},'book@example.test')).status,400);
+ await save('upload',{target:'dispatches:dis1',name:'delivery.png',data:btoa('synthetic-photo')},'ops@example.test');
+ const operational=(await req(env,'operational-documents',null,'ops@example.test')).data.rows;
+ assert.equal(operational.length,1);assert.equal(operational[0].target,'dispatches:dis1');
+ assert.equal((await req(env,'file/'+operational[0].id,null,'ops@example.test')).status,200);
+ assert.equal((await req(env,'file/'+doc.id,null,'ops@example.test')).status,403);
+ assert.equal((await req(env,'upload',{target:'expenses:'+final.invoiceSubmissions[0].expense,name:'blocked.png',data:btoa('test'),expectedRevision:revision},'ops@example.test')).status,403);
+ await save('record',{kind:'products',id:sample.products[0].id,record:{...sample.products[0],brand:'Synthetic brand',model:'Test model'}});
+ assert.equal((await req(env,'data')).data.data.products.find(p=>p.id===sample.products[0].id).brand,'Synthetic brand');
+ const pid=sample.products[0].id;
+ await save('upload',{target:'products:'+pid,name:'product.png',data:btoa('synthetic-image')},'ops@example.test');
+ await save('catalogue-action',{action:'request',product:pid,change:'Ekle / güncelle'},'ops@example.test');
+ let cdata=(await req(env,'data')).data.data;const cr=cdata.catalogueRequests[0];assert.equal(cdata.catalogueEntries.length,0);
+ assert.equal((await req(env,'catalogue-action',{action:'approve',id:cr.id,expectedRevision:revision},'book@example.test')).status,403);
+ assert.equal((await req(env,'record',{kind:'catalogueEntries',record:{},expectedRevision:revision})).status,403);
+ await save('catalogue-action',{action:'approve',id:cr.id});cdata=(await req(env,'data')).data.data;assert.equal(cdata.catalogueEntries[0].brand,'Synthetic brand');assert.ok(cdata.catalogueEntries[0].photoIds);assert.equal(cdata.catalogueEntries[0].price,undefined);
+ await save('record',{kind:'products',id:pid,record:{...sample.products[0],brand:'Changed'}});assert.equal((await req(env,'data')).data.data.catalogueEntries[0].brand,'Synthetic brand');
+ await save('catalogue-action',{action:'request',product:pid,change:'Kaldır'},'ops@example.test');cdata=(await req(env,'data')).data.data;assert.equal(cdata.catalogueEntries[0].status,'Yayında');
+ await save('catalogue-action',{action:'approve',id:cdata.catalogueRequests.find(r=>r.status==='Onay bekliyor').id});assert.equal((await req(env,'data')).data.data.catalogueEntries[0].status,'Kaldırıldı');
  env.db.close();
 });
 function environment(){const db=new DatabaseSync(':memory:');for(const f of readdirSync('drizzle').filter(f=>f.endsWith('.sql')))db.exec(readFileSync('drizzle/'+f,'utf8'));const objects=new Map();return {OWNER_EMAIL:'owner@example.test',DB:{prepare(sql){return {sql,values:[],bind(...values){return {...this,values}}}},async batch(statements){db.exec('BEGIN');try{const results=statements.map(s=>{const p=db.prepare(s.sql);if(/^SELECT/.test(s.sql))return {results:p.all(...s.values),meta:{changes:0}};const r=p.run(...s.values);return {results:[],meta:{changes:Number(r.changes)}};});db.exec('COMMIT');return results;}catch(e){db.exec('ROLLBACK');throw e}}},BUCKET:{async put(k,b){objects.set(k,typeof b==='string'?new TextEncoder().encode(b):b)},async get(k){const b=objects.get(k);return b?{body:b,arrayBuffer:async()=>b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength)}:null}},db,objects};}

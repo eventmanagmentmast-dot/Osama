@@ -1,5 +1,6 @@
 import assets from './assets.generated.json' with {type:'json'};
 import {schema,sensitive,allowed,filtered,validate,validateWarehouse} from './logic.mjs';
+import {catalogueTransition} from './catalogue.mjs';
 import {invoiceTransition} from './invoice-approval.mjs';
 import {portalData} from './portal.mjs';
 import {convertQuote,reviseQuote} from './business.mjs';
@@ -43,6 +44,11 @@ export async function handle(request,env){
    if(path.startsWith('/api/file/')){const d=docs.find(d=>d.id===path.split('/').pop());if(!d)throw error('Yetki yok',403);const file=await env.BUCKET.get(d.storageKey);if(!file)throw error('Dosya bulunamadı',404);return new Response(file.body,{headers:{'Content-Type':'application/octet-stream','Content-Disposition':"attachment; filename*=UTF-8''"+encodeURIComponent(d.name),'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});}
    throw error('Yetki yok',403);
   }
+  if(role==='operations'&&(path==='/api/operational-documents'||path.startsWith('/api/file/'))){
+   const docs=snap.data.documents.filter(d=>['dispatches','returns','fieldReports','products'].includes(d.target.split(':')[0]));
+   if(path==='/api/operational-documents')return json({rows:docs.map(({id,name,target})=>({id,name,target}))});
+   const d=docs.find(d=>d.id===path.split('/').pop());if(!d)throw error('Yetki yok',403);const object=await env.BUCKET.get(d.storageKey);if(!object)throw error('Belge bulunamadı',404);return new Response(object.body,{headers:{'Content-Type':'application/octet-stream','Content-Disposition':"attachment; filename*=UTF-8''"+encodeURIComponent(d.name),'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
+  }
   if(path==='/api/data')return json({data:filtered(snap.data,role),revision:snap.revision,schema:Object.fromEntries(Object.entries(schema).filter(([k])=>allowed(role,k)).map(([k,v])=>[k,v.filter(([f])=>role!=='operations'||!sensitive[k]?.includes(f))])),write:Object.keys(schema).filter(k=>allowed(role,k,true)),users:role==='admin'?[{name:owner(env),role:'admin'},...snap.members.filter(m=>m.email!==owner(env)).map(m=>({name:m.email,role:m.role}))]:[]});
   if(path==='/api/audit'){if(role!=='admin')throw error('Yönetici gerekli',403);return json({rows:(await env.DB.prepare('SELECT at,actor,action FROM audit ORDER BY at DESC LIMIT 200').all()).results});}
   if(path==='/api/backup'){if(role!=='admin')throw error('Yönetici gerekli',403);const r=json(await backup(snap.data,env.BUCKET));r.headers.set('Content-Disposition','attachment; filename="organizasyon-yedek.json"');return r;}
@@ -59,7 +65,10 @@ export async function handle(request,env){
  if(!x||typeof x!=='object'||Array.isArray(x))throw error('Geçersiz istek');
  if(x.expectedRevision!==snap.revision)throw error('Kayıtlar değişti. Paneli yenileyip tekrar deneyin.',409);
  const ops=[];
- if(path==='/api/invoice-approval'){
+ if(path==='/api/catalogue-action'){
+  const result=catalogueTransition(snap.data,email,role,x,id(),new Date().toISOString());ops.push(putRecord('catalogueRequests',result.requestId,result.request));if(result.entry)ops.push(putRecord('catalogueEntries',result.entryId,result.entry));
+ }else if(path==='/api/invoice-approval'){
+
   const change=invoiceTransition(snap.data,email,role,x,id(),new Date().toISOString());
   if(x.file){
    if(change.kind!=='submit'||!x.file.name||!/\.(pdf|png|jpe?g|webp)$/i.test(x.file.name)||x.file.name.length>500)throw error('Belge geçersiz');
@@ -91,7 +100,7 @@ export async function handle(request,env){
   if(!['admin','finance'].includes(role))throw error('Yetki yok',403);
   for(const [k,rid,r] of (path.endsWith("revise-quote")?reviseQuote:convertQuote)(snap.data,x.id,id())){const clean=validate(k,r,snap.data);snap.data[k]=[...snap.data[k].filter(v=>v.id!==rid),{...clean,id:rid}];ops.push(putRecord(k,rid,clean));}
  }else if(path==='/api/record'){
-  const k=x.kind;if(!Object.hasOwn(schema,k)||['documents','invoiceSubmissions'].includes(k)||!allowed(role,k,true))throw error('Bu kaydı değiştirme yetkiniz yok',403);
+  const k=x.kind;if(!Object.hasOwn(schema,k)||['documents','invoiceSubmissions','catalogueRequests','catalogueEntries'].includes(k)||!allowed(role,k,true))throw error('Bu kaydı değiştirme yetkiniz yok',403);
   const rid=x.id||id();if(typeof rid!=='string'||!/^[\w-]{1,100}$/.test(rid))throw error('Kayıt kimliği geçersiz');
   const existing=snap.data[k].find(r=>r.id===rid);
   if(k==='quotes'&&snap.data.approvals.some(a=>a.quote===rid)||k==='quoteLines'&&snap.data.approvals.some(a=>[existing?.quote,x.record?.quote].includes(a.quote)))throw error('Onaya sunulan teklif kilitli. Yeni revizyon oluşturun.');
@@ -100,7 +109,7 @@ export async function handle(request,env){
   const record={...x.record};if(role==='operations')for(const f of sensitive[k]||[])record[f]=existing?.[f]??(f==='cost'?0:'');
   const clean=validate(k,record,snap.data);snap.data[k]=[...snap.data[k].filter(r=>r.id!==rid),{...clean,id:rid}];validateWarehouse(snap.data);ops.push(putRecord(k,rid,clean));
  }else if(path==='/api/upload'){
-  if(!allowed(role,'documents',true)&&!['field','operations'].includes(role))throw error('Yetki yok',403);if(role==='field'&&!portalData(snap.data,email,role).fieldReports.some(r=>x.target==='fieldReports:'+r.id))throw error('Yetki yok',403);const [k,rid]=String(x.target||'').split(':');if(role==='operations'&&k!=='fieldReports')throw error('Yetki yok',403);if(!['expenses','payments','receipts','statements','cardPayments','fieldReports','approvals','surveys'].includes(k)||!snap.data[k].some(r=>r.id===rid))throw error('Bağlanacak kayıt bulunamadı');
+  if(!allowed(role,'documents',true)&&!['field','operations'].includes(role))throw error('Yetki yok',403);if(role==='field'&&!portalData(snap.data,email,role).fieldReports.some(r=>x.target==='fieldReports:'+r.id))throw error('Yetki yok',403);const [k,rid]=String(x.target||'').split(':');if(role==='operations'&&!['fieldReports','dispatches','returns','products'].includes(k))throw error('Yetki yok',403);if(!['expenses','payments','receipts','statements','cardPayments','fieldReports','approvals','surveys','dispatches','returns','products'].includes(k)||!snap.data[k].some(r=>r.id===rid))throw error('Bağlanacak kayıt bulunamadı');
   const name=String(x.name||'').split(/[\\/]/).pop();if(!/\.(pdf|png|jpe?g|webp)$/i.test(name)||name.length>500)throw error('PDF veya görsel seçin');const bytes=bytes64(x.data),fid=id(),storageKey='documents/'+fid;
   await env.BUCKET.put(storageKey,bytes);ops.push(putRecord('documents',fid,{name,target:x.target,storageKey}));
  }else if(path==='/api/restore'){
