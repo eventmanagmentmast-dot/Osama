@@ -670,5 +670,114 @@
       "Karar / hesap dayanağı",
       "text"
     ]
+  ],
+  "catalogueRequests": [
+    [
+      "product",
+      "Ürün",
+      "ref:products"
+    ],
+    [
+      "change",
+      "İşlem",
+      "enum:Ekle / güncelle,Kaldır"
+    ],
+    [
+      "status",
+      "Durum",
+      "enum:Onay bekliyor,Onaylandı,Reddedildi"
+    ],
+    [
+      "owner",
+      "Talep eden",
+      "text"
+    ],
+    [
+      "at",
+      "Talep zamanı",
+      "text"
+    ],
+    [
+      "reviewer",
+      "Onaylayan",
+      "optional"
+    ],
+    [
+      "reviewedAt",
+      "Karar zamanı",
+      "optional"
+    ],
+    [
+      "note",
+      "Karar notu",
+      "optional"
+    ]
+  ],
+  "catalogueEntries": [
+    [
+      "product",
+      "Ürün",
+      "ref:products"
+    ],
+    [
+      "name",
+      "Ürün adı",
+      "text"
+    ],
+    [
+      "code",
+      "Ürün kodu",
+      "text"
+    ],
+    [
+      "brand",
+      "Marka",
+      "optional"
+    ],
+    [
+      "model",
+      "Model",
+      "optional"
+    ],
+    [
+      "category",
+      "Kategori",
+      "text"
+    ],
+    [
+      "description",
+      "Açıklama",
+      "optional"
+    ],
+    [
+      "dimensions",
+      "Ölçüler",
+      "optional"
+    ],
+    [
+      "accessories",
+      "Birlikte verilen parçalar",
+      "optional"
+    ],
+    [
+      "photoIds",
+      "Onaylı fotoğraflar",
+      "optional"
+    ],
+    [
+      "status",
+      "Durum",
+      "enum:Yayında,Kaldırıldı"
+    ],
+    [
+      "approvedBy",
+      "Onaylayan",
+      "text"
+    ],
+    [
+      "approvedAt",
+      "Onay zamanı",
+      "text"
+    ]
   ]
 }

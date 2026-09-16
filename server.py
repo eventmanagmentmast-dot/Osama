@@ -1,5 +1,5 @@
 import os,json,sqlite3,secrets,hashlib,hmac,time,base64,io,csv,zipfile,threading
-import warehouse,business,invoice_local
+import warehouse,business,invoice_local,catalogue_local
 from pathlib import Path
 from http.server import ThreadingHTTPServer,BaseHTTPRequestHandler
 from urllib.parse import urlparse
@@ -27,6 +27,8 @@ SCHEMA['expenses'].append(['taxRates','Belgedeki vergi oranları · KDV / stopaj
 SCHEMA['expenses'].append(['invoiceType','Fatura türü','optional'])
 SCHEMA.update(warehouse.SCHEMA)
 SCHEMA.update(business.SCHEMA)
+SCHEMA['products'].extend([["brand","Marka","optional"],["model","Model","optional"],["dimensions","Ölçüler / ağırlık","optional"],["power","Elektrik / güç bilgisi","optional"],["accessories","Birlikte verilen parçalar","optional"],["technicalNote","Teknik özellikler / kullanım notu","optional"]])
+SCHEMA['resources'].extend([["type","Kaynak türü · ekipman / ekip / araç","optional"],["location","Bulunduğu yer","optional"],["owner","Sorumlu kişi","optional"],["details","Kaynak açıklaması","optional"]])
 FINANCE={'expenses','payments','receipts','cards','statements','cardPayments','staff','advances','extras','rentals','rentalReceipts','products','warehouses'}
 SENSITIVE={'events':{'revenue','budget','vat'},'externalRentals':{'expense'},'maintenance':{'cost'},'rentals':{'dailyRate','discount','vat','billing','incomeMode','billDays'}}
 class Connection(sqlite3.Connection):
@@ -94,7 +96,7 @@ class Handler(BaseHTTPRequestHandler):
   if path in {'/','/app.js','/style.css','/sample.json','/warehouse.js'}:
    file={'/':'index.html','/app.js':'app.js','/style.css':'style.css','/warehouse.js':'warehouse.js','/sample.json':'sample.json'}[path];return self.send(200,(ROOT/file).read_bytes(),{'/':'text/html; charset=utf-8','/app.js':'text/javascript; charset=utf-8','/style.css':'text/css; charset=utf-8','/warehouse.js':'text/javascript; charset=utf-8','/sample.json':'application/octet-stream'}[path])
   if path in {'/experience.css','/brand-mark.png','/event-scene.png'}:return self.send(200,(ROOT/path[1:]).read_bytes(),'image/png' if path.endswith('.png') else 'text/css; charset=utf-8')
-  if path in {'/business.js','/qrcode.js','/experience.js','/finance-core.js','/finance-ui.js','/approval-ui.js','/reconciliation-ui.js','/partners-ui.js','/pdf-reader.mjs','/pdf-engine.mjs','/pdf-worker.mjs'}:return self.send(200,(ROOT/path[1:]).read_bytes(),'text/javascript; charset=utf-8')
+  if path in {'/business.js','/qrcode.js','/experience.js','/finance-core.js','/finance-ui.js','/approval-ui.js','/reconciliation-ui.js','/partners-ui.js','/equipment-ui.js','/catalogue-ui.js','/pdf-reader.mjs','/pdf-engine.mjs','/pdf-worker.mjs'}:return self.send(200,(ROOT/path[1:]).read_bytes(),'text/javascript; charset=utf-8')
   with connect() as c:
    user=self.user(c)
    if path=='/api/session':return self.send(200,{'setup':not c.execute('SELECT 1 FROM users').fetchone(),'user':{'name':user['name'],'role':user['role']} if user else None})
@@ -115,6 +117,13 @@ class Handler(BaseHTTPRequestHandler):
       for row in rows:w.writerow({key: "'"+v if isinstance(v,str) and v.startswith(('=','+','-','@')) else v for key,v in row.items()})
       z.writestr(k+'.csv',s.getvalue().encode('utf-8-sig'))
     return self.send(200,bio.getvalue(),'application/zip',{'Content-Disposition':'attachment; filename="excel-tablolari.zip"'})
+   if user['role']=='operations' and (path=='/api/operational-documents' or path.startswith('/api/file/')):
+    docs=[dict(json.loads(r['payload']),id=r['id']) for r in c.execute("SELECT id,payload FROM records WHERE kind='documents'")]
+    docs=[d for d in docs if d['target'].partition(':')[0] in {'fieldReports','dispatches','returns','products'}]
+    if path=='/api/operational-documents':return self.send(200,{'rows':docs})
+    if not any(d['id']==path.rsplit('/',1)[1] for d in docs):return self.send(403,{'error':'Yetki yok'})
+    f=c.execute('SELECT data FROM files WHERE id=?',(path.rsplit('/',1)[1],)).fetchone()
+    if f:return self.send(200,f['data'],'application/octet-stream',{'Content-Disposition':'attachment; filename="belge"'})
    if path.startswith('/api/file/'):
     if not allowed(user['role'],'documents'):return self.send(403,{'error':'Yetki yok'})
     f=c.execute('SELECT data FROM files WHERE id=?',(path.rsplit('/',1)[1],)).fetchone()
@@ -151,11 +160,13 @@ class Handler(BaseHTTPRequestHandler):
      if user['role'] not in {'admin','finance'}:return self.send(403,{'error':'Yetki yok'})
      for kind,rid,record in (business.revise if path.endswith('revise-quote') else business.convert)(read_data(c,'admin'),x.get('id'),secrets.token_hex(12)):
       c.execute('INSERT OR REPLACE INTO records VALUES(?,?,?)',(kind,rid,json.dumps(validate(kind,record,c),ensure_ascii=False)))
+    elif path=='/api/catalogue-action':
+     catalogue_local.process(c,user,x,read_data)
     elif path=='/api/invoice-approval':
      invoice_local.process(c,user,x,validate,read_data)
     elif path=='/api/record':
      kind=x.get('kind')
-     if kind not in SCHEMA or kind in {'documents','invoiceSubmissions'} or not allowed(user['role'],kind,True):return self.send(403,{'error':'Bu kaydı değiştirme yetkiniz yok'})
+     if kind not in SCHEMA or kind in {'documents','invoiceSubmissions','catalogueRequests','catalogueEntries'} or not allowed(user['role'],kind,True):return self.send(403,{'error':'Bu kaydı değiştirme yetkiniz yok'})
      rid=x.get('id') or secrets.token_hex(12)
      old=c.execute('SELECT payload FROM records WHERE kind=? AND id=?',(kind,rid)).fetchone();existing=json.loads(old['payload']) if old else {}
      if kind=='approvals' and existing and existing.get('status')!='Bekliyor':raise ValueError('Karar verilmiş onay kaydı kilitli; yeni sürüm için yeni kayıt açın')
@@ -177,8 +188,8 @@ class Handler(BaseHTTPRequestHandler):
      blob=base64.b64decode(x['data'],validate=True)
      if len(blob)>10*1024*1024:raise ValueError('Belge en fazla 10 MB olabilir')
      target=x['target'];kind,sep,rid=target.partition(':')
-     if user['role']=='operations' and kind!='fieldReports':return self.send(403,{'error':'Yetki yok'})
-     if kind not in {'expenses','payments','receipts','statements','cardPayments','fieldReports','approvals','surveys'} or not c.execute('SELECT 1 FROM records WHERE kind=? AND id=?',(kind,rid)).fetchone():raise ValueError('Bağlanacak kayıt bulunamadı')
+     if user['role']=='operations' and kind not in {'fieldReports','dispatches','returns','products'}:return self.send(403,{'error':'Yetki yok'})
+     if kind not in {'expenses','payments','receipts','statements','cardPayments','fieldReports','approvals','surveys','dispatches','returns','products'} or not c.execute('SELECT 1 FROM records WHERE kind=? AND id=?',(kind,rid)).fetchone():raise ValueError('Bağlanacak kayıt bulunamadı')
      name=Path(x['name']).name
      if Path(name).suffix.lower() not in {'.pdf','.png','.jpg','.jpeg','.webp'}:raise ValueError('PDF veya görsel seçin')
      fid=secrets.token_hex(12);c.execute('INSERT INTO files VALUES(?,?)',(fid,blob));c.execute('INSERT INTO records VALUES(?,?,?)',('documents',fid,json.dumps({'target':target,'name':name})))

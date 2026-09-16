@@ -2,8 +2,8 @@ import json
 from datetime import date,timedelta
 from pathlib import Path
 SCHEMA=json.loads((Path(__file__).parent/'business-schema.json').read_text(encoding='utf-8'))
-FINANCE={'invoiceSubmissions','taxScenarios','customers','opportunities','quotes','quoteLines','externalRentals','contractors','maintenance','investments','approvals'}
-OPS={'fieldReports','externalRentals','maintenance'}
+FINANCE={'catalogueRequests','catalogueEntries','invoiceSubmissions','taxScenarios','customers','opportunities','quotes','quoteLines','externalRentals','contractors','maintenance','investments','approvals'}
+OPS={'catalogueRequests','catalogueEntries','fieldReports','externalRentals','maintenance'}
 
 def validate(kind,r):
  if kind=='partners' and r['share']>100:raise ValueError('Ortaklık payı %100 üzerinde olamaz')
