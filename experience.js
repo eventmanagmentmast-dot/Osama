@@ -57,21 +57,42 @@ function invoiceView(){const rs=visible('expenses').filter(e=>e.document==='Fatu
 const beforeAdvanceJobRecords=recordsView;recordsView=function(k){beforeAdvanceJobRecords(k);if(k==='advances'){const rs=visible(k);document.querySelectorAll('#content table tr').forEach((tr,i)=>{const cell=document.createElement(i?'td':'th');cell.textContent=i?label('events',eventOf(k,rs[i-1])):'Hangi iş için?';tr.prepend(cell);});}};
 
 // The daily workspace can be arranged per browser/user without changing shared records.
-const dashboardDefaults={order:['metrics','upcoming','priorities','dispatch','returns'],sizes:{metrics:12,upcoming:7,priorities:5,dispatch:6,returns:6},hidden:[]};
-let dashboardDraft=null,dashboardDraftKey='',dashboardDragging='';
+const dashboardDefaults={order:['metrics','upcoming','priorities','dispatch','returns'],sizes:{metrics:12,upcoming:7,priorities:5,dispatch:6,returns:6},hidden:[],items:{}};
+let dashboardDraft=null,dashboardDraftKey='',dashboardDragging='',dashboardItemDragging=null,dashboardDraggedAt=0;
 const dashboardStorageKey=()=>`osama-dashboard-v1:${user?.email||user?.name||user?.role||'user'}`;
 function dashboardState(){
- const clean=source=>{const ids=dashboardDefaults.order,order=[...new Set([...(source?.order||[]),...ids])].filter(id=>ids.includes(id)),sizes={...dashboardDefaults.sizes};for(const id of ids){const size=Number(source?.sizes?.[id]);if([4,5,6,7,8,9,12].includes(size))sizes[id]=size;}return{order,sizes,hidden:[...new Set(source?.hidden||[])].filter(id=>ids.includes(id))}};
+ const clean=source=>{const ids=dashboardDefaults.order,order=[...new Set([...(source?.order||[]),...ids])].filter(id=>ids.includes(id)),sizes={...dashboardDefaults.sizes},items={};for(const id of ids){const size=Number(source?.sizes?.[id]);if([4,5,6,7,8,9,12].includes(size))sizes[id]=size;}for(const [group,value] of Object.entries(source?.items||{}))if(Array.isArray(value))items[group]=[...new Set(value.map(String))];return{order,sizes,hidden:[...new Set(source?.hidden||[])].filter(id=>ids.includes(id)),items}};
  const key=dashboardStorageKey();if(dashboardDraftKey!==key){dashboardDraft=null;dashboardDraftKey=key}
  if(dashboardDraft)return clean(dashboardDraft);
  try{return clean(JSON.parse(localStorage.getItem(dashboardStorageKey())||'null'))}catch{return clean(null)}
 }
 function dashboardSave(message=''){try{localStorage.setItem(dashboardStorageKey(),JSON.stringify(dashboardDraft));if(message)notice(message)}catch{if(message)notice('Tarayıcı düzeni saklayamadı; değişiklikler bu oturum boyunca kullanılacak.')}}
-function dashboardPanelTools(){return '<div class="dashboard-panel-tools" aria-label="Kart düzenleme araçları"><button type="button" class="dashboard-drag" draggable="true" title="Fareyle tutup taşı" aria-label="Kartı fareyle tutup taşı">⠿ <span>Taşı</span></button><button type="button" data-panel-action="left" title="Önceki konuma taşı" aria-label="Önceki konuma taşı">←</button><button type="button" data-panel-action="right" title="Sonraki konuma taşı" aria-label="Sonraki konuma taşı">→</button><button type="button" data-panel-action="size" title="Kart genişliğini değiştir" aria-label="Kart genişliğini değiştir">↔</button><button type="button" data-panel-action="hide" title="Kartı gizle" aria-label="Kartı gizle">−</button></div>'}
+function dashboardPanelTools(){return '<div class="dashboard-panel-tools" aria-label="Kart düzenleme araçları"><button type="button" class="dashboard-drag" draggable="true" title="Kartı fareyle tutup sürükle" aria-label="Kartı fareyle tutup sürükle">⠿</button><button type="button" data-panel-action="left" title="Önceki konuma taşı" aria-label="Önceki konuma taşı">←</button><button type="button" data-panel-action="right" title="Sonraki konuma taşı" aria-label="Sonraki konuma taşı">→</button><button type="button" data-panel-action="size" title="Kart genişliğini değiştir" aria-label="Kart genişliğini değiştir">↔</button><button type="button" data-panel-action="hide" title="Kartı gizle" aria-label="Kartı gizle">−</button></div>'}
+function dashboardItemGroups(panel){
+ const groups=[];
+ const cards=panel.querySelector(':scope > .cards');if(cards)groups.push(cards);
+ const eventRows=[...panel.querySelectorAll(':scope > .event-row')];if(eventRows.length)groups.push(eventRows[0].parentElement);
+ panel.querySelectorAll('table tbody').forEach(body=>{if(body.children.length)groups.push(body)});
+ return [...new Set(groups)];
+}
+function dashboardItemKey(item,index){
+ if(item.matches('.event-row')&&item.dataset.openEvent)return `event:${item.dataset.openEvent}`;
+ const normalized=(item.textContent||'').replace(/\s+/g,' ').trim().toLocaleLowerCase('tr-TR');
+ return `${item.tagName.toLowerCase()}:${normalized||'satır'}:${index}`;
+}
+function prepareDashboardItems(panel){
+ dashboardItemGroups(panel).forEach((group,groupIndex)=>{
+  const groupId=`${panel.dataset.dashboardPanel}:${groupIndex}`;group.dataset.dashboardItemGroup=groupId;
+  [...group.children].forEach((item,index)=>{if(item.matches('.dashboard-panel-tools,.section-heading,.actions'))return;item.dataset.dashboardItem=dashboardItemKey(item,index);item.draggable=true;item.classList.add('dashboard-sortable-item');item.title=item.title||'Tutun ve sıralamak için sürükleyin'});
+  const saved=dashboardDraft.items[groupId]||[],map=new Map([...group.children].filter(item=>item.dataset.dashboardItem).map(item=>[item.dataset.dashboardItem,item]));
+  saved.forEach(key=>{const item=map.get(key);if(item){group.append(item);map.delete(key)}});map.forEach(item=>group.append(item));
+ });
+}
+function saveDashboardItemGroup(group){dashboardDraft.items[group.dataset.dashboardItemGroup]=[...group.children].map(item=>item.dataset.dashboardItem).filter(Boolean);dashboardSave()}
 function enhanceDashboard(){
  const content=$('#content'),heading=content.querySelector('.page-heading'),cardsBlock=content.querySelector(':scope > .cards'),columns=[...content.querySelectorAll(':scope > .ux-columns')];
  if(!heading||!cardsBlock||columns.length<2)return;
- const helper=document.createElement('div');helper.className='dashboard-helper';helper.innerHTML='<span><b>⠿</b> Kartı tutup taşıyın; düzen otomatik kaydedilir.</span><div class="dashboard-hidden" aria-live="polite"></div><button type="button" data-dashboard-reset>Varsayılana dön</button>';
+ const helper=document.createElement('div');helper.className='dashboard-helper';helper.innerHTML='<span><b>⠿</b> Kartları ve içlerindeki satırları tutup sürükleyin; sıralama otomatik kaydedilir.</span><div class="dashboard-hidden" aria-live="polite"></div><button type="button" data-dashboard-reset>Varsayılana dön</button>';
  heading.after(helper);
  const grid=document.createElement('div');grid.className='dashboard-grid';helper.after(grid);
  const metricPanel=document.createElement('section');metricPanel.className='dashboard-panel dashboard-metrics';metricPanel.dataset.dashboardPanel='metrics';metricPanel.dataset.dashboardTitle='Özet göstergeler';metricPanel.append(cardsBlock);
@@ -82,6 +103,7 @@ function enhanceDashboard(){
  for(const panel of panels)panel.insertAdjacentHTML('afterbegin',dashboardPanelTools());
  const panelMap=new Map(panels.map(panel=>[panel.dataset.dashboardPanel,panel])),state=dashboardState();dashboardDraft=state;
  for(const id of state.order){const panel=panelMap.get(id);if(panel)grid.append(panel)}
+ for(const panel of panels)prepareDashboardItems(panel);
  function applyState(){
   const current=dashboardState();dashboardDraft=current;
   for(const id of current.order){const panel=panelMap.get(id);if(!panel)continue;grid.append(panel);panel.style.setProperty('--dashboard-span',current.sizes[id]||6);panel.hidden=current.hidden.includes(id)}
@@ -90,11 +112,12 @@ function enhanceDashboard(){
  }
  function move(id,offset){const order=dashboardDraft.order,index=order.indexOf(id),next=Math.max(0,Math.min(order.length-1,index+offset));if(index===next)return;order.splice(index,1);order.splice(next,0,id);applyState();dashboardSave()}
  grid.addEventListener('click',event=>{const button=event.target.closest('[data-panel-action]');if(!button)return;const id=button.closest('[data-dashboard-panel]').dataset.dashboardPanel;if(button.dataset.panelAction==='left')move(id,-1);if(button.dataset.panelAction==='right')move(id,1);if(button.dataset.panelAction==='hide'){dashboardDraft.hidden=[...new Set([...dashboardDraft.hidden,id])];applyState();dashboardSave('Kart gizlendi; üstteki bağlantıdan geri getirebilirsiniz.')}if(button.dataset.panelAction==='size'){const sizes=[4,5,6,7,8,9,12],current=dashboardDraft.sizes[id]||6;dashboardDraft.sizes[id]=sizes[(sizes.indexOf(current)+1)%sizes.length];applyState();dashboardSave()}});
- grid.addEventListener('dragstart',event=>{const handle=event.target.closest('.dashboard-drag'),panel=handle?.closest('[data-dashboard-panel]');if(!panel){event.preventDefault();return}dashboardDragging=panel.dataset.dashboardPanel;panel.classList.add('is-dragging');event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',dashboardDragging)});
- grid.addEventListener('dragend',event=>{event.target.closest('[data-dashboard-panel]')?.classList.remove('is-dragging');dashboardDragging=''});
- grid.addEventListener('dragover',event=>{if(dashboardDragging){event.preventDefault();event.dataTransfer.dropEffect='move'}});
- grid.addEventListener('drop',event=>{event.preventDefault();const target=event.target.closest('[data-dashboard-panel]');if(!target||!dashboardDragging||target.dataset.dashboardPanel===dashboardDragging)return;const order=dashboardDraft.order,from=order.indexOf(dashboardDragging),to=order.indexOf(target.dataset.dashboardPanel);order.splice(from,1);order.splice(to,0,dashboardDragging);applyState();dashboardSave('Yeni kart sırası kaydedildi.')});
- helper.querySelector('[data-dashboard-reset]').onclick=()=>{dashboardDraft=JSON.parse(JSON.stringify(dashboardDefaults));applyState();dashboardSave('Varsayılan ekran düzenine dönüldü.')};
+ grid.addEventListener('dragstart',event=>{const item=event.target.closest('[data-dashboard-item]');if(item){dashboardItemDragging=item;item.classList.add('is-item-dragging');event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',item.dataset.dashboardItem);return}const handle=event.target.closest('.dashboard-drag'),panel=handle?.closest('[data-dashboard-panel]');if(!panel){event.preventDefault();return}dashboardDragging=panel.dataset.dashboardPanel;panel.classList.add('is-dragging');event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',dashboardDragging)});
+ grid.addEventListener('dragend',event=>{event.target.closest('[data-dashboard-panel]')?.classList.remove('is-dragging');event.target.closest('[data-dashboard-item]')?.classList.remove('is-item-dragging');if(dashboardItemDragging)dashboardDraggedAt=Date.now();dashboardDragging='';dashboardItemDragging=null});
+ grid.addEventListener('dragover',event=>{if(dashboardItemDragging){const target=event.target.closest('[data-dashboard-item]');if(target&&target.parentElement===dashboardItemDragging.parentElement){event.preventDefault();event.dataTransfer.dropEffect='move'}return}if(dashboardDragging){event.preventDefault();event.dataTransfer.dropEffect='move'}});
+ grid.addEventListener('drop',event=>{event.preventDefault();if(dashboardItemDragging){const target=event.target.closest('[data-dashboard-item]'),group=dashboardItemDragging.parentElement;if(!target||target===dashboardItemDragging||target.parentElement!==group)return;const box=target.getBoundingClientRect(),after=event.clientY>box.top+box.height/2;group.insertBefore(dashboardItemDragging,after?target.nextSibling:target);saveDashboardItemGroup(group);return}const target=event.target.closest('[data-dashboard-panel]');if(!target||!dashboardDragging||target.dataset.dashboardPanel===dashboardDragging)return;const order=dashboardDraft.order,from=order.indexOf(dashboardDragging),to=order.indexOf(target.dataset.dashboardPanel);order.splice(from,1);order.splice(to,0,dashboardDragging);applyState();dashboardSave('Yeni kart sırası kaydedildi.')});
+ grid.addEventListener('click',event=>{if(Date.now()-dashboardDraggedAt<250){event.preventDefault();event.stopPropagation()}},true);
+ helper.querySelector('[data-dashboard-reset]').onclick=()=>{dashboardDraft=JSON.parse(JSON.stringify(dashboardDefaults));dashboardSave('Varsayılan ekran düzenine dönüldü.');todayView()};
  applyState();
 }
 const beforeDashboardToday=todayView;todayView=function(){beforeDashboardToday();enhanceDashboard()};
